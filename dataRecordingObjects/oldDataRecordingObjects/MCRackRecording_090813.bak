@@ -1,0 +1,252 @@
+classdef MCRackRecording < dataRecording
+    properties
+        %{
+        Properties of parent class: dataRecording
+        recordingDir %Full directory containing the recorded session
+        startDate %Start date (time) of Recording (matlab long format)
+        endDate %End date (time) of Recording (matlab long format)
+        samplingFrequency %Sampling rate
+        dataFileNames %Name of recording data files
+        channelNames %a cell array with the names of the channels
+        channelNumbers %an array with integer channel numbers
+        recordingDuration_ms %the total duration of the recording
+        %}
+    end
+    properties (Constant, Hidden)
+        maxNumberOfDigitalChannels=4;
+        includeDigitalDataInTriggers=1;
+        defaultRawDataStreamName='Electro';
+        defaultTriggerStreamName='Trigger';
+        defaultDigitalDataStreamName='Digital';
+        defaultLocalDir='C:\Users\Tulip\Documents\Academic\Post-Doc\Experiments'; %Default directory from which search starts
+    end
+    properties (Hidden)
+        MCinfo
+        getDataConfig
+        totalChannels
+        streamNames
+        rawDataStreamNumber
+        rawDataInfo
+        triggerStreamNumber
+        triggerInfo
+        digitalDataStreamNumber
+        digitalDataInfo
+        channelID
+        number2ID
+        ID2number
+        ZeroADValue
+        MicrovoltsPerAD
+        SweepStartTime
+        SweepStopTime
+    end
+    methods
+        function [V_uV,T_ms]=getData(obj,channels,startTime_ms,window_ms,name)
+            %Extract MCRack recording data from file to memory
+            %Usage: [V_uV,T_ms]=obj.getData(channels,startTime_ms,window_ms,name);
+            %Input : channels - [1xN] a vector with channel numbers as appearing in the data folder files
+            %        startTime_ms - a vector [1xN] of start times [ms]. If Inf, returns all time stamps in recording (startTime_ms is not considered)
+            %        window_ms - a scalar [1x1] with the window duration [ms].
+            %        name - the name of the stream (if not entered, default name is used)
+            %Output: V_us - A 3D matrix [nChannels x nTrials x nSamples] with voltage waveforms across specified channels and trials
+            %        T_ms - A time vector relative to recording start (t=0 at start)
+            if nargin==4
+                obj.getDataConfig.streamname=obj.streamNames{obj.rawDataStreamNumber};
+            elseif nargin==5
+                obj.getDataConfig.streamname=name;
+                %this option should be revised because currently all parameters are derived from the raw data stream
+            else 
+                error('method getData was not used correctly: wrong number of inputs');
+            end
+            conversionFactor=1/1000*obj.samplingFrequency;
+            startTime_ms=round(startTime_ms*conversionFactor)/conversionFactor;
+            window_ms=round(window_ms*conversionFactor)/conversionFactor;
+            recordingDuration_ms=round(obj.recordingDuration_ms*conversionFactor)/conversionFactor;
+            windowSamples=round(window_ms*conversionFactor);
+            nTrials=length(startTime_ms);
+            V_uV=nan(numel(channels),nTrials,windowSamples);
+          
+            obj.getDataConfig.StreamNumber=obj.rawDataStreamNumber-1;
+            for i=1:nTrials
+                obj.getDataConfig.startend=[startTime_ms(i);startTime_ms(i)+window_ms];
+                if startTime_ms(i)>=0 && (startTime_ms(i)+window_ms)<=recordingDuration_ms
+                    data=mcstreammex(obj.getDataConfig);
+                    data=reshape(data.data,obj.totalChannels,length(data.data)/obj.totalChannels);
+                    V_uV(:,i,:)=(data(obj.number2ID(channels),:) - obj.ZeroADValue) * obj.MicrovoltsPerAD;
+                else
+                    startSample=min(0,round(startTime_ms(i)*conversionFactor));
+                    endSample=min(windowSamples,round((recordingDuration_ms-startTime_ms)*conversionFactor));
+                    obj.getDataConfig.startend=[max(0,startTime_ms(i));min(startTime_ms(i)+window_ms,recordingDuration_ms)];
+                    data=mcstreammex(obj.getDataConfig);
+                    data=reshape(data.data,obj.totalChannels,length(data.data)/obj.totalChannels);
+                    V_uV(:,i,1-startSample:endSample)=(data(obj.number2ID(channels),:) - obj.ZeroADValue) * obj.MicrovoltsPerAD;
+                    disp('Recording at edge');
+                end
+            end
+            if nargout==2
+                T_ms=(1:windowSamples)*(1e3/obj.samplingFrequency);
+            end
+        end
+        function [D,T_ms]=getDigitalData(obj,startTime_ms,window_ms,name)
+            %Extract MCRack digital data from file to memory
+            %Usage: [V_uV,T_ms]=obj.getData(channels,startTime_ms,window_ms,name);
+            %Input : channels - [1xN] a vector with channel numbers as appearing in the data folder files
+            %        startTime_ms - a vector [1xN] of start times [ms]. If Inf, returns all time stamps in recording (startTime_ms is not considered)
+            %        window_ms - a scalar [1x1] with the window duration [ms].
+            %        name - the name of the stream (if not entered, default name is used)
+            %Output: D - A 3D matrix [nChannels x nTrials x nSamples] with digitalData waveforms across specified channels and trials
+            %        T_ms - A time vector relative to recording start (t=0 at start)
+            if nargin==3
+                obj.getDataConfig.streamname=obj.streamNames{obj.digitalDataStreamNumber};
+            elseif nargin==4
+                obj.getDataConfig.streamname=name;
+                %this option should be revised because currently all parameters are derived from the raw data stream
+            elseif nargin==1
+                startTime_ms=0;
+                window_ms=obj.recordingDuration_ms;
+                obj.getDataConfig.streamname=obj.streamNames{obj.digitalDataStreamNumber};
+            else
+                error('method getData was not used correctly: wrong number of inputs');
+            end
+            conversionFactor=1/1000*obj.samplingFrequency;
+            startTime_ms=round(startTime_ms*conversionFactor)/conversionFactor;
+            window_ms=round(window_ms*conversionFactor)/conversionFactor;
+            recordingDuration_ms=round(obj.recordingDuration_ms*conversionFactor)/conversionFactor;
+            windowSamples=round(window_ms*conversionFactor);
+            nTrials=length(startTime_ms);
+            
+            
+            D=false(4,nTrials,windowSamples); %up to 4 digital bits are allowed
+            
+            obj.getDataConfig.StreamNumber=obj.digitalDataStreamNumber-1;
+            for i=1:nTrials
+                obj.getDataConfig.startend=[startTime_ms(i);startTime_ms(i)+window_ms];
+                if startTime_ms(i)>=0 && (startTime_ms(i)+window_ms)<=recordingDuration_ms
+                    data=mcstreammex(obj.getDataConfig);
+                    D(:,i,:)=rem(floor(data.data*pow2(0:-1:(1-obj.maxNumberOfDigitalChannels))),2)';
+                else
+                    startSample=min(0,round(startTime_ms(i)*conversionFactor));
+                    endSample=min(windowSamples,round((recordingDuration_ms-startTime_ms)*conversionFactor));
+                    obj.getDataConfig.startend=[max(0,startTime_ms(i));min(startTime_ms(i)+window_ms,recordingDuration_ms)];
+                    data=mcstreammex(obj.getDataConfig);
+                    D(:,i,1-startSample:endSample)=rem(floor(data.data*pow2(0:-1:(1-obj.maxNumberOfDigitalChannels))),2)';
+                    disp('Recording at edge');
+                end
+            end
+            if nargout==2
+                T_ms=(1:windowSamples)*(1e3/obj.samplingFrequency);
+            end
+        end
+        function [T_ms]=getTrigger(obj,startTime_ms,window_ms,name)
+            %Extract triggers from file Neuralynx recording
+            %Usage : [T_ms]=obj.getTrigger(startTime_ms,endTime_ms,TTLbits)
+            %Input : startTime_ms - start time [ms].
+            %        window_ms - the window duration [ms]. If Inf, returns all time stamps in recording (startTime_ms is not considered)
+            %        TTLbits - which bit to extract for time stamps (out of 8,default = first bit, 1)
+            %Output: T_ms - trigger times [ms] - different triggers are arranged in a cell array
+            if isempty(obj.triggerStreamNumber)
+                disp('Warming!!!! No trigger entities in recording');
+                T_ms={};
+                return;
+            end
+            if nargin==4
+                obj.getDataConfig.streamname=name;
+            elseif nargin==3
+                obj.getDataConfig.streamname=obj.streamNames(obj.triggerStreamNumber);
+            elseif nargin==1
+                startTime_ms=0;
+                window_ms=obj.recordingDuration_ms;
+                obj.getDataConfig.streamname=obj.streamNames(obj.triggerStreamNumber);
+            end
+            
+            nTriggers=numel(obj.triggerStreamNumber);
+            obj.getDataConfig.startend=[startTime_ms;startTime_ms+window_ms];
+            T_ms=cell(1,nTriggers);
+            for i=1:nTriggers
+                obj.getDataConfig.StreamNumber=obj.triggerStreamNumber-1;
+                triggerData=mcstreammex(obj.getDataConfig);
+                T_ms{i}=triggerData.times;
+            end
+            if obj.includeDigitalDataInTriggers & ~isempty(obj.digitalDataStreamNumber)
+                [D,T]=getDigitalData(obj,startTime_ms,window_ms);
+                validChannels=any(any(D,3),2);
+                D=D(validChannels,:,:);
+                for i=1:size(D,1)
+                    T_ms{nTriggers+2*i-1}=T(find(diff(squeeze(D(i,:,:)))>0));
+                    T_ms{nTriggers+2*i}=T(find(diff(squeeze(D(i,:,:)))<0));
+                end
+            end
+        end
+    end
+    
+    methods (Hidden)
+        %class constructor
+        function obj = MCRackRecording(recordingFile)
+            if nargin==1 %if directory with data was not entered open get directory GUI
+                [pathstr, name, ext] = fileparts(recordingFile);
+                if isempty(pathstr) %in case the file is in the current directory
+                    obj.recordingDir=cd;
+                else
+                    obj.recordingDir=pathstr;
+                end
+                obj.dataFileNames=[name ext];
+                if ~isdir(obj.recordingDir) || ~exist([obj.recordingDir '\' obj.dataFileNames],'file')
+                    error('Object was not constructed since no valid folder was choosen');
+                end
+            elseif nargin==0
+                [obj.dataFileNames,obj.recordingDir]= uigetfile('*.mcd','Choose the MCD file',obj.defaultLocalDir,'MultiSelect','on');
+                if obj.dataFileNames==0 %no folder chosen
+                    error('Object was not constructed since no folder was choosen');
+                end
+            else
+                error('Object was not constructed since too many parameters were given at construction');
+            end
+            obj.recordingName=obj.dataFileNames;
+            
+            tmp.function='OpenFile';
+            tmp.Filename=[obj.recordingDir '\' obj.dataFileNames];
+            obj.MCinfo=mcstreammex(tmp);
+            
+            obj.SweepStartTime=obj.MCinfo.SweepStartTime;
+            obj.SweepStopTime=obj.MCinfo.SweepStopTime;
+            
+            obj.streamNames=obj.MCinfo.StreamNames;
+            obj.rawDataStreamNumber=find( cellfun(@(x) all(x(1:numel(obj.defaultRawDataStreamName))==obj.defaultRawDataStreamName),obj.streamNames) );
+            obj.rawDataInfo=obj.MCinfo.StreamInfo{obj.rawDataStreamNumber};
+            
+            obj.triggerStreamNumber=find( cellfun(@(x) all(x(1:numel(obj.defaultTriggerStreamName))==obj.defaultTriggerStreamName),obj.streamNames) );
+            obj.triggerInfo=[obj.MCinfo.StreamInfo{obj.triggerStreamNumber}];
+
+            obj.digitalDataStreamNumber=find( cellfun(@(x) all(x(1:numel(obj.defaultDigitalDataStreamName))==obj.defaultDigitalDataStreamName),obj.streamNames) );
+            obj.digitalDataInfo=[obj.MCinfo.StreamInfo{obj.digitalDataStreamNumber}];
+            %This assumes that all streams had the same sampling frequency
+            obj.samplingFrequency=obj.MCinfo.MillisamplesPerSecond2(obj.rawDataStreamNumber)/1000;   %in Hz
+            obj.startDate=obj.MCinfo.RecordingDate;
+            obj.endDate=obj.MCinfo.RecordingStopDate;
+            
+            obj.recordingDuration_ms = obj.MCinfo.SweepStopTime-obj.MCinfo.SweepStartTime;
+            
+            obj.channelNames=obj.MCinfo.ChannelNames(:,obj.rawDataStreamNumber);
+            obj.channelNumbers=obj.MCinfo.ChannelID(:,obj.rawDataStreamNumber)+1;
+            
+            obj.totalChannels=size(obj.MCinfo.ChannelID,1);
+            
+            obj.channelID=1:obj.totalChannels;
+            
+            obj.number2ID(obj.channelNumbers)=obj.channelID;
+            obj.ID2number(obj.channelID)=obj.channelNumbers;
+            
+            obj.ZeroADValue = obj.MCinfo.ZeroADValue(obj.rawDataStreamNumber);
+            if obj.MCinfo.UnitSign(obj.rawDataStreamNumber)=='V'
+                obj.MicrovoltsPerAD = obj.MCinfo.UnitsPerAD(obj.rawDataStreamNumber)*1000000;
+            else
+                error('Units in input data are wrong!!!')
+            end
+            %definitions for MCStreamMex function                        
+            obj.getDataConfig.function='GetFromTo';
+            obj.getDataConfig.timesonly=0;
+            obj.getDataConfig.originorder='on';
+            obj.getDataConfig.warning='on';
+            obj.getDataConfig.ChunkNumber=-1;
+        end
+    end
+end
