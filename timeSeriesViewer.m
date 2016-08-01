@@ -19,7 +19,7 @@ end
 
 dirSep=filesep; %choose file/dir separator according to platform
 
-AVG.Params.dataClassDirectory=[AVG.Params.NSKToolBoxMainDir dirSep 'dataRecordingObjects' dirSep];
+AVG.Params.dataClassDirectory=[AVG.Params.timeSeriesViewerMainDir dirSep 'dataRecordingObjects' dirSep];
 AVG.Params.dataAnalysisDirectory=[AVG.Params.timeSeriesViewerMainDir dirSep 'dataAnalysis' dirSep];
 AVG.Params.colormapFileDirectory=[AVG.Params.timeSeriesViewerMainDir dirSep 'colormaps' dirSep];
 

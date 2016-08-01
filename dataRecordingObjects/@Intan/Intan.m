@@ -678,10 +678,17 @@ classdef Intan < dataRecording
                 obj.chanElectrodes(chan)=amplifier_channels(chan).port_number;
             end
             
+            %load layout
+            obj=obj.loadChLayout;
             
-            
-            obj.channelNumbers=cell2mat({amplifier_channels.custom_order})+1;
-            obj.channelNames=mat2cell(obj.channelNumbers,1,ones(1,numel(obj.channelNumbers)));
+            if numel(~isnan(obj.chLayoutNumbers))> obj.chanElectrodes(1)
+                obj.channelNames={amplifier_channels.custom_channel_name};
+                obj.channelNumbers=1:numel(amplifier_channels);
+                singleElectrode=true;
+            else
+                obj.channelNumbers=cell2mat({amplifier_channels.custom_order})+1;
+                obj.channelNames=mat2cell(obj.channelNumbers,1,ones(1,numel(obj.channelNumbers)));
+            end
             obj.dataBytesStart = ftell(fid);
             
             
@@ -693,13 +700,11 @@ classdef Intan < dataRecording
             obj.electrNum=unique(obj.chanElectrodes);
             obj.chan2elect=find(obj.chanElectrodes == obj.electrNum(1));
             
-            %load layout
-            obj=obj.loadChLayout;
             
             fclose(fid);
             
             if nargin==1
-                if numel(obj.electrNum)>1
+                if numel(obj.electrNum)>1 & ~singleElectrode
                     A=numel(obj.electrNum);
                     obj=Intan(recordingFile,A);
                 end
