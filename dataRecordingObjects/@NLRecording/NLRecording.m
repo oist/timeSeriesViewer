@@ -36,13 +36,6 @@ classdef NLRecording < dataRecording
     end
     
     methods
-        function obj=reloadMetaData(obj)
-            %Reloads the meta data from directory
-            %Usage: obj.reloadMetaData();
-            %Input: []
-            obj=getChannelInformation(obj);
-            obj=getHeaderInformation(obj);
-        end
         
         function [V_uV,t_ms]=getData(obj,channels,startTime_ms,window_ms)
             %Extract Neuralynx recording data from file to memory

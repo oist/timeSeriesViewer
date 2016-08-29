@@ -1,6 +1,6 @@
 function [obj]=plotSuperimposedActivityTrace(obj)
 if obj.refreshPlot
-    obj.refreshPlot=0;s
+    obj.refreshPlot=0;
     minVal=min(obj.M(:));
     maxVal=max(obj.M(:));
     range=maxVal-minVal;

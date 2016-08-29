@@ -1,7 +1,7 @@
 function [obj]=createActivityTracePhysicalSpace(obj)
 %electrode layouts, notice that the first layout of a given number of channels is the default
-elecNums=[60 60 60 60 120 252 32 32 20 64 252];
-obj.plotParams.allElecLayoutNames={'layout_200_8x8.mat','layout_HD_2x30.mat','layout_40_Hexa','layout_500_6x10','layout_200_12x12.mat','layout_100_16x16.mat','layout_300_6x6_FlexMEA.mat','layout_300_6x6_FlexMEARot180.mat','layout_20_Blackrock','layout_64_5X6X5_FlexDrive','layout_300_9Well','layout_50_8x8_Edge'};
+elecNums=[128 64 60 60 60 60 120 252 32 32 20 64 252];
+obj.plotParams.allElecLayoutNames={'layout_100_9x4_FlexMEA120','layout_50_8x8_Edge','layout_200_8x8.mat','layout_HD_2x30.mat','layout_40_Hexa','layout_500_6x10','layout_200_12x12.mat','layout_100_16x16.mat','layout_300_6x6_FlexMEA.mat','layout_300_6x6_FlexMEARot180.mat','layout_20_Blackrock','layout_64_5X6X5_FlexDrive','layout_300_9Well'};
 obj.plotParams.elecLayoutNames4Popup=cellfun(@(x) x(8:end),obj.plotParams.allElecLayoutNames,'UniformOutput',0);
 if ~isempty(obj.nCh)
     obj.plotParams.electrodeLayoutNumber=find(elecNums>=obj.nCh,1,'first');
@@ -54,9 +54,9 @@ obj=preparePhysicalElectrodeSpace(obj);
         pNotNans=find(~isnan(En));
         [obj.plotParams.allChannels p]=sort(En(pNotNans));
         obj.plotParams.allChannelNames=Ena(pNotNans(p));
-        obj.plotParams.nAllChannels=numel(obj.plotParams.allChannels);
-        %obj.plotParams.allChannelsPlaces(obj.plotParams.allChannels)=obj.plotParams.allChannels;
-        %obj.plotParams.nAllChannelPlaces=numel(obj.plotParams.allChannelsPlaces);
+        obj.plotParams.nAllChannels=numel(obj.plotParams.allChannels); %changed 2.8.16 - Mark to enable gaps in channel numbers in layout
+        %obj.plotParams.nAllChannels=max(obj.plotParams.allChannels);
+
         
         obj.plotParams.translation=NaN(obj.plotParams.nAllChannels,3);
         for i=1:obj.plotParams.nAllChannels
@@ -75,9 +75,9 @@ obj=preparePhysicalElectrodeSpace(obj);
         yM=(1.5:(max_grid_x-0.5))';
         
         hGrid1=line([XL(1) XL(2)],[xM*obj.plotParams.aY+obj.plotParams.bY xM*obj.plotParams.aY+obj.plotParams.bY],...
-            'LineWidth',2,'Color',[0.9 0.8 0.7],'Parent',obj.hPlotAxis);
+            'LineWidth',2,'Color',[0.9 0.9 0.9],'Parent',obj.hPlotAxis);
         hGrid2=line([yM *obj.plotParams.aX+obj.plotParams.bX yM*obj.plotParams.aX+obj.plotParams.bX],[YL(1) YL(2)],...
-            'LineWidth',2,'Color',[0.9 0.8 0.7],'Parent',obj.hPlotAxis);
+            'LineWidth',2,'Color',[0.9 0.9 0.9],'Parent',obj.hPlotAxis);
         obj.hPlotBackground.hGrid=[hGrid1;hGrid2];
         
         obj.plotParams.x=obj.plotParams.aX*obj.plotParams.translation(:,1)+obj.plotParams.bX;

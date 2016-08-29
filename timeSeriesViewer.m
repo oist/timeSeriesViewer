@@ -45,6 +45,7 @@ AVG.Params.exportFigNumber=1; %initialize export figure counter
 AVG.Params.maxNumberOfTriggerInColumn=5; %the maximal number of trigger checkbox objects in a column - above this number stacking is also done over rows 
 AVG.Params.defaultTriggerOffset=0; % the default value for trigger offset
 AVG.Params.selectedAnalysis=[]; %initialize analysis options
+AVG.Params.loadTriggerDefault=false; %how to inialize the load trigger mode
 
 %filter
 AVG.Params.filterDesigns={'ellip','butter','cheby1','cheby2','equiripple','kaiserwin'}; %should be listed in filter object
@@ -955,7 +956,7 @@ end
         AVG.hTrigger.hBackward=uicontrol('Parent',AVG.hTrigger.navigationHBox,'Callback',{@CallbackTriggerDirectionPush,1}, 'Style','push', 'String','>>');
         set(AVG.hTrigger.navigationHBox, 'Widths',[-1 40 -1]);
         
-        AVG.hTrigger.hGetTrigFromRawFiles=uicontrol('Parent', AVG.hTrigger.MainVBox, 'HorizontalAlignment','left','Style','check', 'String','load trig. data','value',false);
+        AVG.hTrigger.hGetTrigFromRawFiles=uicontrol('Parent', AVG.hTrigger.MainVBox, 'HorizontalAlignment','left','Style','check', 'String','load trig. data','value',AVG.Params.loadTriggerDefault);
         
         AVG.hTrigger.OffsetHBox=uix.HBox('Parent', AVG.hTrigger.MainVBox, 'Padding', 4, 'Spacing', 4);
         AVG.hTrigger.hOffsetTxt=uicontrol('Parent', AVG.hTrigger.OffsetHBox, 'HorizontalAlignment','left','Style','text', 'String','Offset [ms]');
@@ -987,9 +988,8 @@ end
         AVG.hTrigger.MainGrid=uix.Grid('Parent',AVG.hTrigger.MainVBox, 'Spacing',4, 'Padding',4);
         
         set(AVG.hTrigger.MainVBox, 'Heights',[50 25 25 25 25 25 50 25 -1]);
-        
         %this line should be after the startTimeEdit uicontrol is defined! 
-
+                
     end %createGUI
 %% %%%%%%%%%%%%%%%%%%%%%%%%%% Create Trigger GUI %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
