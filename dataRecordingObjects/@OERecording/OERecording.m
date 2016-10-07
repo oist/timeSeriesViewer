@@ -254,9 +254,15 @@ classdef OERecording < dataRecording
             tmpRecordingName=obj.recordingName;%for multi file mode
             tmpFileNames=obj.dataFileNames;
             for i=1:numel(tmpRecordingDir) %meta data is saved individually for every recording
-                obj.recordingDir=tmpRecordingDir{i}; %for multi file mode - change to one dir and run
-                obj.recordingName=tmpRecordingName{i};
-                obj.dataFileNames=tmpFileNames{i};
+                if iscell(obj.recordingDir)
+                    obj.recordingDir=tmpRecordingDir{i}; %for multi file mode - change to one dir and run
+                    obj.recordingName=tmpRecordingName{i};
+                    obj.dataFileNames=tmpFileNames{i};
+                else
+                    obj.recordingDir=tmpRecordingDir; %for multi file mode - change to one dir and run
+                    obj.recordingName=tmpRecordingName;
+                    obj.dataFileNames=tmpFileNames;
+                end
                 
                 %start getting meta data
                 obj.eventFiles=dir([obj.recordingDir filesep '*.' obj.eventFileExtension]);
@@ -471,7 +477,7 @@ classdef OERecording < dataRecording
             if ~obj.multifileMode
                 if exist([obj.recordingDir filesep 'metaData.mat'],'file') && ~obj.overwriteMetaData
                     obj=loadMetaData(obj);
-                    obj=obj.removeMultipleFields;
+                    %obj=obj.removeMultipleFields;
                     obj=obj.getFileIdentifiers;
                 else
                     obj=extractMetaData(obj);%file identifiers are aquired inside function

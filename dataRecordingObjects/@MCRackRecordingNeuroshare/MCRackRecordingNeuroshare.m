@@ -274,8 +274,8 @@ classdef MCRackRecordingNeuroshare < dataRecording
                 
                 if obj.includeDigitalDataInTriggers & ~isempty(obj.digitalDataInfo)
                     [D,Ttmp]=getDigitalData(obj,tmpStartTime,tmpEndTime-tmpStartTime);
-                    validChannels=any(any(D,3),2);
-                    D=D(validChannels,:,:);
+                    %validChannels=any(any(D,3),2);%problematic since trigger identity changes
+                    %D=D(validChannels,:,:);
                     for j=1:size(D,1)
                         T{nTriggers+2*j-1,i}=Ttmp(find(diff(squeeze(D(j,:,:)))>0))+obj.cumStart(i);
                         T{nTriggers+2*j,i}=Ttmp(find(diff(squeeze(D(j,:,:)))<0))+obj.cumStart(i);
@@ -287,7 +287,7 @@ classdef MCRackRecordingNeuroshare < dataRecording
             for i=1:(nTriggers+nTriggersDigital)
                 T_ms{i}=cell2mat(T(i,:));
             end
-            T_ms(cellfun(@isempty,T_ms))=[];
+            %T_ms(cellfun(@isempty,T_ms))=[];
         end
         
         function obj=closeOpenFiles(obj)

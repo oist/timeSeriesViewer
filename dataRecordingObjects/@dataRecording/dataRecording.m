@@ -24,11 +24,12 @@ classdef (Abstract) dataRecording < handle
         ZeroADValue
         MicrovoltsPerAD
         overwriteMetaData = false;
+        electrodePitch
     end
     
     properties (SetAccess=protected) %these are properties that are not synchronized or loaded from meta files
         multifileMode %(logical 1x1) if multi files were selected
-        folderMode
+        folderMode = false;
     end
     
     properties (Constant, Abstract)
@@ -94,6 +95,29 @@ classdef (Abstract) dataRecording < handle
                 metaData.(props.allPropName{pNonConstantProps(i)})=obj.(props.allPropName{pNonConstantProps(i)});
             end
             save([obj.recordingDir filesep 'metaData'],'metaData');
+        end
+        
+        function [X,Y,Z]=getElectrodePositions(obj,electrodePitch)
+            %if recording object contains electrode positions, use these, if not
+            if ~isempty(obj.chLayoutPositions)
+                disp('Getting positions from layout files');
+                pNotNaN=isnan(obj.chLayoutPositions(1,:)) & isnan(obj.chLayoutPositions(2,:));
+                X=Enp(1,:);
+                Y=Enp(2,:);
+            else
+                if nargin==2
+                    obj.electrodePitch=electrodePitch;
+                elseif nargin==1 & isempty(obj.electrodePitch)
+                    obj.electrodePitch=100;
+                end
+                disp(['Getting positions from grid layout, assuming pitch of ' num2str(obj.electrodePitch) 'um !!!!!']);
+
+                %Build inverse map between electrode and location
+                [meshX,meshY]=meshgrid(1:size(obj.chLayoutNumbers,1),1:size(obj.chLayoutNumbers,2));
+                X(obj.chLayoutNumbers(~isnan(obj.chLayoutNumbers)))=meshX(~isnan(obj.chLayoutNumbers))*obj.electrodePitch;
+                Y(obj.chLayoutNumbers(~isnan(obj.chLayoutNumbers)))=meshY(~isnan(obj.chLayoutNumbers))*obj.electrodePitch;
+            end
+             Z=zeros(size(Y));
         end
         
         function deleteMetaData(obj)
@@ -167,9 +191,10 @@ classdef (Abstract) dataRecording < handle
                         chMapFiles=[obj.recordingDir filesep chMapFiles{1}];
                     end
             end
-            
-            disp(['channel map extracted from ' chMapFiles]);
+
             A = importdata(chMapFiles);
+            elecString=regexp(A{1},'_','split');
+            obj.electrodePitch=str2num(elecString{1});
             if numel(A)==1
                 obj.layoutName=['layout_' A{1}];
                 load(obj.layoutName);
@@ -186,6 +211,7 @@ classdef (Abstract) dataRecording < handle
                 end
                 
             end
+            fprintf('Channel map with pitch %d and layout %s extracted from %s\n',obj.electrodePitch,elecString{2},chMapFiles);
             
         end
         

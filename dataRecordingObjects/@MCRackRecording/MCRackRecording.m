@@ -364,8 +364,8 @@ classdef MCRackRecording < dataRecording
                 
                 if obj.includeDigitalDataInTriggers & ~isempty(obj.digitalDataStreamNumber)
                     [D,Ttmp]=getDigitalData(obj,tmpStartTime,tmpEndTime-tmpStartTime);
-                    validChannels=any(any(D,3),2);
-                    D=D(validChannels,:,:);
+                    %validChannels=any(any(D,3),2); %problematic since trigger identity changes
+                    %D=D(validChannels,:,:);
                     for j=1:size(D,1)
                         T{nTriggers+2*j-1,i}=Ttmp(find(diff(squeeze(D(j,:,:)))>0))+obj.cumStart(i);
                         T{nTriggers+2*j,i}=Ttmp(find(diff(squeeze(D(j,:,:)))<0))+obj.cumStart(i);
@@ -377,7 +377,7 @@ classdef MCRackRecording < dataRecording
             for i=1:(nTriggers+nTriggersDigital)
                 T_ms{i}=cell2mat(T(i,:));
             end
-            T_ms(cellfun(@isempty,T_ms))=[];
+            %T_ms(cellfun(@isempty,T_ms))=[];
             
         end
     end
@@ -399,7 +399,11 @@ classdef MCRackRecording < dataRecording
             
             %open files for reading and getting file data
             for i=1:obj.nRecordings
+                tmpFileName=[obj.recordingDir filesep obj.dataFileNames{i}];
                 obj.fileOpenStruct(i).function='OpenFile';
+                if ~exist(tmpFileName,'file')
+                    error(['Recording file does not exist: ' tmpFileName]);
+                end
                 obj.fileOpenStruct(i).Filename=[obj.recordingDir filesep obj.dataFileNames{i}];
                 obj.MCinfo=mcstreammex(obj.fileOpenStruct(i)); %a file can be read only after opening, and if no other file set was opened afterwards
                 
@@ -454,12 +458,16 @@ classdef MCRackRecording < dataRecording
                 if isempty(obj.chLayoutNumbers)
                     if obj.totalChannels<=32
                         obj.layoutName='layout_300_6x6_FlexMEA';
+                        obj.electrodePitch=300;
                     elseif obj.totalChannels<=60
                         obj.layoutName='layout_200_8x8.mat';
+                        obj.electrodePitch=200;
                     elseif obj.totalChannels<=120
-                        obj.layoutName='layout_200_12x12.mat';
+                        obj.layoutName='layout_100_12x12.mat';
+                        obj.electrodePitch=100;
                     elseif obj.totalChannels<=252
                         obj.layoutName='layout_100_16x16.mat';
+                        obj.electrodePitch=100;
                     end
                     load(obj.layoutName);
                     obj.chLayoutNumbers=En;
