@@ -232,6 +232,7 @@ classdef NeuraLynxRecording < dataRecording
                 disp('Object was not constructed since too many parameters were given at construction');
                 return;
             end
+            obj.folderMode=true;
             obj=obj.getRecordingFiles(recordingFile);
             obj.recordingDir=[obj.recordingDir obj.recordingName];
             

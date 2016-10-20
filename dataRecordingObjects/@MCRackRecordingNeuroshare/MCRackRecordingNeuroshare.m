@@ -1,4 +1,4 @@
-classdef MCRackRecordingNeuroshare < dataRecording
+classdef MCRackRecordingNeuroshare < dataRecording & handle
     properties
         %{
         Properties of parent class: dataRecording
@@ -97,7 +97,8 @@ classdef MCRackRecordingNeuroshare < dataRecording
                         
                         if f>1 && f<=(obj.nRecordings+1) % data in inside recording range
                           if f~=lastF  
-                            [~, obj.hfile(f-1)] = ns_OpenFile([obj.recordingDir filesep obj.dataFileNames{f-1}]); %temporary , check if works
+                            %[~, obj.hfile(f-1)] = ns_OpenFile([obj.recordingDir filesep obj.dataFileNames{f-1}]); %temporary , check if works
+                            %ns_CloseFile([obj.recordingDir filesep obj.dataFileNames{f-1}]); %temporary , check if works
                           end
                             [ns,count,data]=ns_GetAnalogData(obj.hfile(f-1),obj.rawChNumber2EntityNumber(channels),startSampleLocal-cumStart(f)*obj.samplesPerMS+1,windowSamplesLocal);
                             V_uV(:,i,startSample:endSample)=data'*1e6;
@@ -129,6 +130,7 @@ classdef MCRackRecordingNeuroshare < dataRecording
                     end
                 end
             end
+            
             if ~obj.convertData2Double
                 V_uV = uint16((V_uV./obj.MicrovoltsPerAD+obj.ZeroADValue));
             end
@@ -181,7 +183,7 @@ classdef MCRackRecordingNeuroshare < dataRecording
                         startSampleLocal=(tmpStartTime-obj.cumStart(f))*obj.samplesPerMS; %for sample number in neuro-share
                         windowSamplesLocal=((tmpEndTime-obj.cumStart(f))*obj.samplesPerMS-startSampleLocal); %for sample number in neuro-share
                         endSample=startSample+windowSamplesLocal-1;
-                        [~, obj.hfile(f)] = ns_OpenFile([obj.recordingDir filesep obj.dataFileNames{f}]); %temporary , check if works
+                        %[~, obj.hfile(f)] = ns_OpenFile([obj.recordingDir filesep obj.dataFileNames{f}]); %temporary , check if works
                         
                         if tmpStartTime>=0 && tmpEndTime<=obj.recordingDuration_ms
                             [ns,count,data]=ns_GetAnalogData(obj.hfile(f),obj.digitalDataEnteties(pDigitalEntity),startSampleLocal+1,windowSamplesLocal);

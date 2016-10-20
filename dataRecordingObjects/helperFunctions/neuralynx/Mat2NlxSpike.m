@@ -1,10 +1,13 @@
 % MAT2NLXSPIKE   Exports data from Matlab into a Neuralynx NSE, NST or NTT file.
 %
-%   Nlx2MatSpike( Filename, FieldSelectionFlags, HeaderExtractionFlag, ExtractMode,
-%                 ExtractionModeVector, Timestamps, ScNumbers, CellNumbers,
+%   Mat2NlxSpike( Filename, AppendToFileFlag, ExportMode, ExportModeVector,
+%                 FieldSelectionFlags, Timestamps, ScNumbers, CellNumbers,
 %                 Features, Samples, Header);
 %
-%   Version 5.0.0 
+%   Version 6.0.0 
+%
+%	Requires MATLAB R2012b (8.0) or newer
+%
 %   
 %   Notes on export data:
 %   1. Each export variable's Nth element corresponds to the Nth element in
@@ -16,12 +19,12 @@
 %      smallest export variable.
 %   3. An item is an individual value in an array or matrix.
 %   3. For more information on Neuralynx records see:
-%      http://www.neuralynx.com/static/software/NeuralynxDataFileFormats.pdf
+%      http://neuralynx.com/software/NeuralynxDataFileFormats.pdf
 %   4. Export data will always be assigned in the order indicated in the
 %      FieldSelectionFlags. If data is not imported via a FieldSelectionFlags
 %      index being 0, simply omit the export variable from the command.
 %      EXAMPLE: FieldSelectionFlags = [1 0 0 0 1 0];
-%      Nlx2MatSpike('test.ntt',FieldSelectionFlags,0,1,[],Timestamps,Samples);
+%      Mat2NlxSpike('test.ntt',0,1,[],FieldSelectionFlags,Timestamps,Samples);
 %
 %
 %   INPUTS:
@@ -118,21 +121,21 @@
 %                           FieldSelectionFlags(6): Header
 %                        EXAMPLE: [1 0 0 0 1 0] exports timestamp and sample vectors
 %                        and excludes all other data.
-%   Timestamps: A 1xN vector of timestamps. This must be in ascending order.
-%   ScNumbers: A 1xN vector of spike channel numbers. This is the order that
+%   Timestamps: A 1xN integer vector of timestamps. This must be in ascending order.
+%   ScNumbers: A 1xN integer vector of spike channel numbers. This is the order that
 %              the spike AEs were created and have nothing to do with the
 %              AD channel number.
-%   CellNumbers: A 1xN vector of classified cell numbers. If no cell was
+%   CellNumbers: A 1xN integer vector of classified cell numbers. If no cell was
 %                classified for this spike, this value will be zero.
-%   Features: A 8xN vector of the features (e.g. Peak, Valley, etc.) calculated
+%   Features: A 8xN integer vector of the features (e.g. Peak, Valley, etc.) calculated
 %             by Cheetah.
-%   Samples: A 32xMxN matrix of the data points. Where M is the number of
+%   Samples: A 32xMxN integer matrix of the data points. Where M is the number of
 %            subchannels in the spike file (NTT M = 4, NST M = 2, NSE M = 1).
 %            These values are in AD counts.
-%   Header: A Mx1 vector of all the text from the Neuralynx file header, where
+%   Header: A Mx1 string vector of all the text from the Neuralynx file header, where
 %           M is the number of lines of text in the header.
 %
-%   EXAMPLE:  Nlx2MatSpike('test.nst', [1 1 1 1 1], 1, 1, [],Timestamps,
+%   EXAMPLE:  Mat2NlxSpike('test.nst', 0, 1, [], [1 1 1 1 1], Timestamps,
 %             ScNumbers, CellNumbers, Features, Samples, Header);
 %   Uses export mode 1 to export all of the data (assuming N is identical for
 %   all export variables) from all of the export variables to the file

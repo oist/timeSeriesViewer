@@ -668,8 +668,7 @@ end
     function CallbackManualLoadVariable(hObj,Event)
         dlgOptions.WindowStyle='normal';
         triggerVar = inputdlg({'Please enter variable name:'},'Get trigger from workspace',1,{''},dlgOptions);
-        tmpTrig=[];
-        evalin('base',['assignin(''caller'',''tmpTrig'',' triggerVar{1} ')']);
+        tmpTrig=evalin('base',triggerVar{1});
         if iscell(tmpTrig)
             AVG.Params.nTriggers=AVG.Params.nTriggers+numel(tmpTrig);
             AVG.Params.triggers=[AVG.Params.triggers tmpTrig];

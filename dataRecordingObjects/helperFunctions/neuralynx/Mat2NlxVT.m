@@ -1,10 +1,13 @@
 % MAT2NLXVT   Exports data from Matlab into a Neuralynx NVT file.
 %
-%   Nlx2MatVT(  Filename, FieldSelection, ExtractHeader, ExtractMode, ModeArray,
-%               TimeStamps, ExtractedX, ExtractedY, ExtractedAngle, Targets,
+%   Mat2NlxVT(  Filename, AppendToFileFlag, ExportMode, ExportModeVector,
+%               FieldSelectionFlags, TimeStamps, ExtractedX, ExtractedY, ExtractedAngle, Targets,
 %               Points, Header);
 %
-%   Version 5.0.0 
+%   Version 6.0.0 
+%
+%	Requires MATLAB R2012b (8.0) or newer
+%
 %   
 %   Notes on export data:
 %   1. Each export variable's Nth element corresponds to the Nth element in
@@ -16,12 +19,12 @@
 %      smallest export variable.
 %   3. An item is an individual value in an array or matrix.
 %   3. For more information on Neuralynx records see:
-%      http://www.neuralynx.com/static/software/NeuralynxDataFileFormats.pdf
+%      http://neuralynx.com/software/NeuralynxDataFileFormats.pdf
 %   4. Export data will always be assigned in the order indicated in the
 %      FieldSelectionFlags. If data is not imported via a FieldSelectionFlags
 %      index being 0, simply omit the export variable from the command.
 %      EXAMPLE: FieldSelectionFlags = [1 0 0 0 0 1 0];
-%      Nlx2MatVT('test.nvt',FieldSelectionFlags,0,1,[],Timestamps,Points);
+%      Mat2NlxVT('test.nvt',0,1,[],FieldSelectionFlags,Timestamps,Points);
 %
 %
 %   INPUTS:
@@ -119,20 +122,20 @@
 %                           FieldSelectionFlags(7): Header
 %                        EXAMPLE: [1 0 0 0 0 1 0] exports timestamp and point
 %                        vectors and excludes all other data.
-%   Timestamps: A 1xN vector of timestamps.
-%   Extracted X: A 1xN vector of the calculated X coordinate for each record.
-%   Extracted Y: A 1xN vector of the calculated Y coordinate for each record.
-%   Extracted Angle: A 1xN vector of the calculated head direction angle for
+%   Timestamps: A 1xN integer vector of timestamps.
+%   Extracted X: A 1xN integer vector of the calculated X coordinate for each record.
+%   Extracted Y: A 1xN integer vector of the calculated Y coordinate for each record.
+%   Extracted Angle: A 1xN integer vector of the calculated head direction angle for
 %                    each record. This value is in degrees.
-%   Targets: A 50xN matrix of the targets found for each frame. These values
+%   Targets: A 50xN integer matrix of the targets found for each frame. These values
 %            are encoded using the VT bitfield encoding.
-%   Points: A 480xN matrix of the threshold crossings found for each frame.
+%   Points: A 480xN integer matrix of the threshold crossings found for each frame.
 %           These values are encoded using the VT bitfield encoding.
-%   Header: A Mx1 vector of all the text from the Neuralynx file header, where
+%   Header: A Mx1 string vector of all the text from the Neuralynx file header, where
 %           M is the number of lines of text in the header.
 %
-%   EXAMPLE: Nlx2MatVT('test.nvt', [1 1 1 1 1 1], 1, 1, [],
-%             Timestamps, X, Y, Angles, Targets, Points, Header);
+%   EXAMPLE: Mat2NlxVT('test.nvt', 0, 1, [], [1 1 1 1 1 1],
+%                      Timestamps, X, Y, Angles, Targets, Points, Header);
 %   Uses export mode 1 to export all of the data (assuming N is identical for
 %   all export variables) from all of the export variables to the file
 %   test.nvt, overwriting any data that may be in that file.

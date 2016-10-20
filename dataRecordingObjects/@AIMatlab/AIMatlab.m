@@ -32,7 +32,7 @@ classdef AIMatlab < dataRecording
             obj.samplingFrequency=1/obj.timeBin*1000;
         end
         function obj=updateMaximalSamplingFrequency(obj)
-            load([obj.recordingDir '\' obj.dataFileNames],'-mat', 't');
+            load([obj.recordingDir filesep obj.dataFileNames],'-mat', 't');
             if ~isempty(obj.pMultiSeries)
                 t=t{obj.pMultiSeries};
             end
@@ -84,7 +84,7 @@ classdef AIMatlab < dataRecording
                     obj.recordingDir=pathstr;
                 end
                 obj.dataFileNames=[name ext];
-                if ~isdir(obj.recordingDir) || ~exist([obj.recordingDir '\' obj.dataFileNames],'file')
+                if ~isdir(obj.recordingDir) || ~exist([obj.recordingDir filesep obj.dataFileNames],'file')
                     error('Object was not constructed since no valid folder was choosen');
                 end
             elseif nargin==0
@@ -96,7 +96,7 @@ classdef AIMatlab < dataRecording
                 error('Object was not constructed since too many parameters were given at construction');
             end
             
-            load([obj.recordingDir '\' obj.dataFileNames],'ic','I'); %loads t
+            load([obj.recordingDir filesep obj.dataFileNames],'ic','I'); %loads t
             if iscell(ic) %in case t/I/ic are structured as cell array containning more than one data set
                 nSeries=numel(ic);
                 f=figure('position',[100 100 100 500],'name','Select series');
