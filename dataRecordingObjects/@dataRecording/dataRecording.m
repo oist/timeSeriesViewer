@@ -16,7 +16,7 @@ classdef (Abstract) dataRecording < handle
         nRecordings % (1x1) number of recording files
         chLayoutNumbers %(MxN) The layout of the channel numbers in physical space arranged in an M by N grid
         chLayoutNames %(Cell MxN)The layout of the channel names in physical space arranged in an M by N grid
-        chLayoutPositions % (1xN or 2xN or 3xN) array of electrode position in [x or x,y or x,y,z]  
+        chLayoutPositions % (1xN or 2xN or 3xN) array of electrode position in [x or x,y or x,y,z]
         layoutName %the name of the channel layout (electrode type)
         n2s % a translation between the number of the channel to the serial number of the channel (in the case where all channels are consecutive)
         
@@ -89,7 +89,7 @@ classdef (Abstract) dataRecording < handle
             props.allPropName={props.metaClassData.PropertyList.Name}';
             props.allPropIsConstant=cell2mat({props.metaClassData.PropertyList.Constant}');
             props.allPropSetAccess={props.metaClassData.PropertyList.SetAccess}';
-
+            
             pNonConstantProps=find(~props.allPropIsConstant & ~strcmp(props.allPropSetAccess,'protected'));
             for i=1:numel(pNonConstantProps)
                 metaData.(props.allPropName{pNonConstantProps(i)})=obj.(props.allPropName{pNonConstantProps(i)});
@@ -101,9 +101,8 @@ classdef (Abstract) dataRecording < handle
             %if recording object contains electrode positions, use these, if not
             if ~isempty(obj.chLayoutPositions)
                 disp('Getting positions from layout files');
-                pNotNaN=isnan(obj.chLayoutPositions(1,:)) & isnan(obj.chLayoutPositions(2,:));
-                X=Enp(1,:);
-                Y=Enp(2,:);
+                X=obj.chLayoutPositions(1,:);
+                Y=obj.chLayoutPositions(2,:);
             else
                 if nargin==2
                     obj.electrodePitch=electrodePitch;
@@ -111,13 +110,13 @@ classdef (Abstract) dataRecording < handle
                     obj.electrodePitch=100;
                 end
                 disp(['Getting positions from grid layout, assuming pitch of ' num2str(obj.electrodePitch) 'um !!!!!']);
-
+                
                 %Build inverse map between electrode and location
                 [meshX,meshY]=meshgrid(1:size(obj.chLayoutNumbers,1),1:size(obj.chLayoutNumbers,2));
                 X(obj.chLayoutNumbers(~isnan(obj.chLayoutNumbers)))=meshX(~isnan(obj.chLayoutNumbers))*obj.electrodePitch;
                 Y(obj.chLayoutNumbers(~isnan(obj.chLayoutNumbers)))=meshY(~isnan(obj.chLayoutNumbers))*obj.electrodePitch;
             end
-             Z=zeros(size(Y));
+            Z=zeros(size(Y));
         end
         
         function deleteMetaData(obj)
@@ -145,7 +144,7 @@ classdef (Abstract) dataRecording < handle
                 for i=1:numel(fieldNames)
                     obj.(fieldNames{i})=metaData.(fieldNames{i});
                 end
-            else %multi file recording 
+            else %multi file recording
                 for i=1:numel(obj.recordingDir)
                     if nargin==2
                         load(fileName{i});
@@ -191,7 +190,7 @@ classdef (Abstract) dataRecording < handle
                         chMapFiles=[obj.recordingDir filesep chMapFiles{1}];
                     end
             end
-
+            
             A = importdata(chMapFiles);
             elecString=regexp(A{1},'_','split');
             obj.electrodePitch=str2num(elecString{1});
@@ -215,8 +214,41 @@ classdef (Abstract) dataRecording < handle
             
         end
         
+        function convert2KiloSortFormat(obj,targetFile)
+            %converts data recording object to kilo sort binary format for sorting
+            if nargin==1
+                targetFile=[obj.recordingDir 'data.dat'];
+            else
+                if ~strcmp(targetFile(end-3:end),'dat')
+                    error('input file should have a ''.dat'' extension');
+                end
+            end
+            
+            chunkSize=2*60*1000; %msec
+            startTimes=0:chunkSize:obj.recordingDuration_ms;
+            endTimes=[startTimes(2:end) obj.recordingDuration_ms];
+            
+            if ~exist(targetFile,'file')
+                %open data file
+                fid = fopen(targetFile, 'w+');
+                obj.convertData2Double=0;
+                
+                fprintf('\nConverting blocks to binary KiloSort format(/%d)',numel(startTimes));
+                for j=1:numel(startTimes)
+                    fprintf('%d,',j);
+                    data=squeeze(obj.getData(obj.channelNumbers,startTimes(j),endTimes(j)-startTimes(j)));
+                    pause(0.001);
+                    fwrite(fid, data, '*int16');
+                end
+                fclose(fid);
+                fprintf('\nConversion complete\n');
+            else
+                disp('file already exists, please data first and run again!');
+            end
+        end
+        
         function obj=getRecordingFiles(obj,recordingFile,fileExtension)
-            %Get directory with data files 
+            %Get directory with data files
             %Usage: obj = getRecordingFiles(obj,recordingFile,fileExtension)
             %if no recording file is entered lauches a GUI
             %if no file extension entered, a directory is chosen rather than a specific files (for example for neuralynx recordings)
