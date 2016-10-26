@@ -221,10 +221,10 @@ classdef OERecording < dataRecording
             
             pTTL=eventType==3;
             for i=1:numel(activeCh)
-                T_ms{(2*activeCh+1)}=timestamps(eventId==1 & ch==activeCh(i) & pTTL)';%ch1 is 0
-                T_ms{(2*activeCh+2)}=timestamps(eventId==0 & ch==activeCh(i) & pTTL)';%ch1 is 0
-                chNumber((2*activeCh+1))=activeCh(i);
-                chNumber((2*activeCh+2))=activeCh(i);
+                T_ms{(2*activeCh(i)+1)}=timestamps(eventId==1 & ch==activeCh(i) & pTTL)';%ch1 is 0
+                T_ms{(2*activeCh(i)+2)}=timestamps(eventId==0 & ch==activeCh(i) & pTTL)';%ch1 is 0
+                chNumber((2*activeCh(i)+1))=activeCh(i);
+                chNumber((2*activeCh(i)+2))=activeCh(i);
             end
         end
         
