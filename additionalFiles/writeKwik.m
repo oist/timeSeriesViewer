@@ -39,8 +39,9 @@ h5create(trigFile, '/event_types/TTL/events/timesamples', size(trigMat), ...
 h5write(trigFile, '/event_types/TTL/events/timesamples', trigMat);
 
 % set the on off value for the triggers
-triggersOnOff = zeros(length(trigMat), 1);     
+triggersOnOff = zeros(1, length(trigMat));     
 triggersOnOff(1:lengthsTriggers(1:2:end)) = 1;
+triggersOnOff = logical(triggersOnOff);
 h5create(trigFile, '/event_types/TTL/events/userdata/eventID', size(triggersOnOff), ...
   'Datatype', class(triggersOnOff));
 h5write(trigFile, '/event_types/TTL/events/userdata/eventID', triggersOnOff);
