@@ -5,7 +5,7 @@ classdef (Abstract) dataRecording < handle
         dataFileNames % (Cell 1 x N)  array of N recording data file names
         startDate %(1x1) Start date (time) of Recording (matlab long format)
         endDate %(1x1) End date (time) of Recording (matlab long format)
-        samplingFrequency %(1x1) Sampling rate
+        samplingFrequency %(1xN) Sampling rate
         recordingDuration_ms %(1x1) the total duration of the recording in [ms]
         channelNames % (Cell 1xN) a cell array with the N names of the channels
         channelNumbers % (1xN) an array with integer channel numbers
