@@ -84,7 +84,7 @@ h5write(trigFile, '/event_types/TTL/events/userdata/eventID', triggersOnOff);
 % set the channel value for the triggers
 channelInfo = [];
 for k = 1:length(triggersChNum)
-  channelInfo(end+1 : end+1+lengthsTriggers(k)) = triggersChNum(k);
+  channelInfo(end+1 : end+lengthsTriggers(k)) = triggersChNum(k);
 end
 h5create(trigFile, '/event_types/TTL/events/userdata/event_channels', size(channelInfo), ...
   'Datatype', class(channelInfo));
