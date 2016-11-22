@@ -59,25 +59,22 @@ classdef KwikRecording < dataRecording
       end
       nCh = numel(channels);
       
-      V_uV = zeros(nWindows, windowSamples, nCh, obj.datatype); %initialize waveform matrix
+      V_uV = zeros(nCh, nWindows, windowSamples, obj.datatype); %initialize waveform matrix
       
       for k = 1:length(channels)
-        V_uV(:, : , k) = h5read(obj.fullFilename, [obj.channelNames{channels(k)} '/data'], ...
-          [1 startElement], [Inf windowSamples]);
+        V_uV(channels(k), :, :) = h5read(obj.fullFilename, [obj.channelNames{k} '/data'], ...
+          [1 1 startElement], [1 nWindows windowSamples]);
       end
       
       if obj.convertData2Double
-        for k = 1:size(V_uV, 3)
-          V_uV(:, :, k) = double(V_uV(:, :, k)) * obj.MicrovoltsPerAD(k);
+        for k = 1:size(V_uV, 1)
+          V_uV(k, :, :) = double(V_uV(k, :, :)) * obj.MicrovoltsPerAD(k);
         end
       end
       
       if nargout==2
         t_ms=(1:windowSamples)*(1e3/obj.samplingFrequency(1));
       end
-      
-      % Final permutation
-      V_uV = permute(V_uV,[3 1 2]);
     end
     
     function [T_ms, chNumber] = getTrigger(obj, ~, ~, ~)
@@ -93,8 +90,8 @@ classdef KwikRecording < dataRecording
       T_ms = cell(1, 2);
       allTriggers = h5read(obj.triggerFilename, obj.pathToTriggerData);
       onOff =  h5read(obj.triggerFilename, obj.pathToTriggerOnOff);
-      T_ms{1} = allTriggers(onOff == 0);
-      T_ms{2} = allTriggers(onOff == 1);
+      T_ms{1} = allTriggers(onOff == 1);
+      T_ms{2} = allTriggers(onOff == 0);
       chNumber = h5read(obj.triggerFilename, obj.pathToTriggerChannel);
     end
   end
@@ -114,8 +111,9 @@ classdef KwikRecording < dataRecording
       obj = obj.getRecordingFiles(recordingFile, 'kwd');
       
       % Assume the .kwe file has the same name as the .kwd file
+      [~, name, ~] = fileparts(obj.recordingName);
       obj.fullFilename = fullfile(obj.recordingDir, obj.recordingName);
-      obj.triggerFilename = fullfile(obj.recordingDir, [obj.recordingName, '.kwe']);
+      obj.triggerFilename = fullfile(obj.recordingDir, [name, '.kwe']);
       
       fileInfo = h5info(obj.fullFilename, obj.pathToData);
       
@@ -144,7 +142,7 @@ classdef KwikRecording < dataRecording
         tmp = h5readatt(obj.fullFilename, [obj.channelNames{k} '/application_data'], 'channel_bit_volts');
         obj.MicrovoltsPerAD(obj.channelNumbers(k)) = tmp(1);
       end
-      obj.sample_ms = 1e3 / obj.samplingFrequency;
+      obj.sample_ms = 1e3 / obj.samplingFrequency(1);
       
       try
         obj.recordingDuration_ms = h5readatt(obj.fullFilename, '/', 'recordingDuration');

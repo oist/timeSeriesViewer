@@ -52,6 +52,13 @@ for k = 1:numCh
   h5write( dataFile, ['/recordings/' num2str(k) '/data'], data(k, :, :));
   h5writeatt(dataFile, ['/recordings/' num2str(k)], 'sample_rate', samplingFreq(k)); 
   h5writeatt(dataFile, ['/recordings/' num2str(k)], 'bit_depth', bitDepth);
+  % now write the attribute in application data
+  % require the low level functions
+  plist = 'H5P_DEFAULT';
+  fid = H5F.open(dataFile, 'H5F_ACC_RDWR', plist);
+  gid = H5G.create(fid, ['/recordings/' num2str(k) '/application_data'], plist, plist, plist);
+  H5G.close(gid);
+  H5F.close(fid);
   h5writeatt(dataFile, ['/recordings/' num2str(k) '/application_data'], 'channel_bit_volts', bitVolts(k));
 end
 
@@ -69,7 +76,7 @@ h5write(trigFile, '/event_types/TTL/events/timesamples', trigMat);
 % set the on off value for the triggers
 triggersOnOff = zeros(1, length(trigMat));     
 triggersOnOff(1:lengthsTriggers(1:2:end)) = 1;
-triggersOnOff = logical(triggersOnOff);
+triggersOnOff = uint8(triggersOnOff);
 h5create(trigFile, '/event_types/TTL/events/userdata/eventID', size(triggersOnOff), ...
   'Datatype', class(triggersOnOff));
 h5write(trigFile, '/event_types/TTL/events/userdata/eventID', triggersOnOff);
