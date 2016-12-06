@@ -69,25 +69,25 @@ h5writeatt(dataFile, '/', 'recordingDuration', recordingDuration);
 % now for the events
 lengthsTriggers = cellfun('length', triggers); % get the length of each element of the cell
 trigMat = cell2mat(triggers);                  % concatenate all the cell elements
-h5create(trigFile, '/event_types/TTL/events/timesamples', size(trigMat), ...
+h5create(trigFile, '/event_types/TTL/events/time_samples', size(trigMat), ...
   'Datatype', class(trigMat));
-h5write(trigFile, '/event_types/TTL/events/timesamples', trigMat);
+h5write(trigFile, '/event_types/TTL/events/time_samples', trigMat);
 
 % set the on off value for the triggers
 triggersOnOff = zeros(1, length(trigMat));     
 triggersOnOff(1:lengthsTriggers(1:2:end)) = 1;
 triggersOnOff = uint8(triggersOnOff);
-h5create(trigFile, '/event_types/TTL/events/userdata/eventID', size(triggersOnOff), ...
+h5create(trigFile, '/event_types/TTL/events/user_data/eventID', size(triggersOnOff), ...
   'Datatype', class(triggersOnOff));
-h5write(trigFile, '/event_types/TTL/events/userdata/eventID', triggersOnOff);
+h5write(trigFile, '/event_types/TTL/events/user_data/eventID', triggersOnOff);
 
 % set the channel value for the triggers
 channelInfo = [];
 for k = 1:length(triggersChNum)
   channelInfo(end+1 : end+lengthsTriggers(k)) = triggersChNum(k);
 end
-h5create(trigFile, '/event_types/TTL/events/userdata/event_channels', size(channelInfo), ...
+h5create(trigFile, '/event_types/TTL/events/user_data/event_channels', size(channelInfo), ...
   'Datatype', class(channelInfo));
-h5write(trigFile, '/event_types/TTL/events/userdata/event_channels', channelInfo);
+h5write(trigFile, '/event_types/TTL/events/user_data/event_channels', channelInfo);
 
 end

@@ -2,7 +2,7 @@ classdef KwikRecording < dataRecording
   %KWIKRECORDING Reads a recording in the Kwik format
   % This class is used to read kwd and kwe files containing raw data and
   % trigger information from a kwik recording. The class DOES NOT implement
-  % th e whole kwik data specification but it only focuses on data and
+  % the whole kwik data specification but it only focuses on data and
   % triggers at the moment.
   %
   % AUTHOR: stefano.masneri@brain.mpg.de
@@ -24,9 +24,9 @@ classdef KwikRecording < dataRecording
   properties (Constant = true)
     pathToData = '/recordings/';
     
-    pathToTriggerData = '/event_types/TTL/events/timesamples'; % where the triggers are stored in the .kwe file
-    pathToTriggerOnOff = '/event_types/TTL/events/userdata/eventID';
-    pathToTriggerChannel = '/event_types/TTL/events/userdata/event_channels';
+    pathToTriggerData = '/event_types/TTL/events/time_samples'; % where the triggers are stored in the .kwe file
+    pathToTriggerOnOff = '/event_types/TTL/events/user_data/eventID';
+    pathToTriggerChannel = '/event_types/TTL/events/user_data/event_channels';
         
     %must define them, bc abstract in base class
     defaultLocalDir='C:\Users\Tulip\Documents\Academic\Post-Doc\Experiments'; %Default directory from which search starts
@@ -62,8 +62,13 @@ classdef KwikRecording < dataRecording
       V_uV = zeros(nCh, nWindows, windowSamples, obj.datatype); %initialize waveform matrix
       
       for k = 1:length(channels)
-        V_uV(channels(k), :, :) = h5read(obj.fullFilename, [obj.channelNames{k} '/data'], ...
-          [1 1 startElement], [1 nWindows windowSamples]);
+        try
+          V_uV(channels(k), :, :) = h5read(obj.fullFilename, [obj.channelNames{k} '/data'], ...
+            [1 1 startElement], [1 nWindows windowSamples]);
+        catch
+          V_uV(channels(k), 1, :) = h5read(obj.fullFilename, [obj.channelNames{k} '/data'], ...
+            [1 startElement], [1 windowSamples]);
+        end
       end
       
       if obj.convertData2Double
@@ -110,10 +115,16 @@ classdef KwikRecording < dataRecording
       
       obj = obj.getRecordingFiles(recordingFile, 'kwd');
       
-      % Assume the .kwe file has the same name as the .kwd file
-      [~, name, ~] = fileparts(obj.recordingName);
+      % Find the .kwe file
+      %[~, name, ~] = fileparts(obj.recordingName);
       obj.fullFilename = fullfile(obj.recordingDir, obj.recordingName);
-      obj.triggerFilename = fullfile(obj.recordingDir, [name, '.kwe']);
+      triggerFile = dir([obj.recordingDir filesep '*.kwe']);
+      if isempty(triggerFile)
+        error('KwikRecording: Cannot file .kwe file')
+      elseif length(triggerFile) > 1
+        warning('KwikRecording: Multiple .kwe file found! using the first one')
+      end
+      obj.triggerFilename = fullfile(obj.recordingDir, triggerFile.name);
       
       fileInfo = h5info(obj.fullFilename, obj.pathToData);
       
@@ -139,7 +150,11 @@ classdef KwikRecording < dataRecording
           obj.channelNames{k}, 'sample_rate');
         obj.bitDepth(obj.channelNumbers(k)) = h5readatt(obj.fullFilename, ...
           obj.channelNames{k}, 'bit_depth');
-        tmp = h5readatt(obj.fullFilename, [obj.channelNames{k} '/application_data'], 'channel_bit_volts');
+        try
+          tmp = h5readatt(obj.fullFilename, [obj.channelNames{k} '/application_data'], 'channel_bit_volts');
+        catch
+          tmp = h5read(obj.fullFilename, [obj.channelNames{k} '/application_data/channel_bit_volts']);
+        end
         obj.MicrovoltsPerAD(obj.channelNumbers(k)) = tmp(1);
       end
       obj.sample_ms = 1e3 / obj.samplingFrequency(1);
