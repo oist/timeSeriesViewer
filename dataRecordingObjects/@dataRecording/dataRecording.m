@@ -20,7 +20,7 @@ classdef (Abstract) dataRecording < handle
         layoutName %the name of the channel layout (electrode type)
         n2s % a translation between the number of the channel to the serial number of the channel (in the case where all channels are consecutive)
         
-        convertData2Double = 1 % if data should be converted to double from the original quantization
+        convertData2Double = 1; % if data should be converted to double from the original quantization
         ZeroADValue
         MicrovoltsPerAD
         overwriteMetaData = false;

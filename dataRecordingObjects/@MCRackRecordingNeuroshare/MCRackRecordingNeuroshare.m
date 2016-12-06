@@ -318,7 +318,9 @@ classdef MCRackRecordingNeuroshare < dataRecording & handle
             %[ns,info] = ns_GetLibraryInfo();
             
             %open files for reading and getting file data
+            fprintf('Opening files for reading (/%d): ',obj.nRecordings);
             for i=1:obj.nRecordings
+                fprintf('%d,',i);
                 [~, obj.hfile(i)] = ns_OpenFile([obj.recordingDir filesep obj.dataFileNames{i}]); %opens the mcd file for reading, which is used to avoid folder error in unix - bottle neck for this process
                 [~, obj.fileInfo{i}] = ns_GetFileInfo(obj.hfile(i));
                 
@@ -370,13 +372,13 @@ classdef MCRackRecordingNeuroshare < dataRecording & handle
                 obj.channelNames = strtrim(cellfun(@(x) x(25:27),obj.entityLabels(obj.rawElectrodeEnteties),'UniformOutput',0));
                 %I changed this to get it to work!!!!
                 
-               % obj.channelNumbers = 1+str2double(cellfun(@(x) x(10:13),obj.entityLabels(obj.rawElectrodeEnteties),'UniformOutput',0));
-                 obj.channelNumbers=1:numel(obj.rawElectrodeEnteties);
+                % obj.channelNumbers = 1+str2double(cellfun(@(x) x(10:13),obj.entityLabels(obj.rawElectrodeEnteties),'UniformOutput',0));
+                obj.channelNumbers=1:numel(obj.rawElectrodeEnteties);
                 
                 [ns,obj.rawElectrodeInfo] = ns_GetAnalogInfo(obj.hfile(1),obj.rawElectrodeEnteties);
-               obj.rawChNumber2EntityNumber=zeros(1,max(obj.channelNumbers));
-                obj.rawChNumber2EntityNumber(obj.channelNumbers)=obj.rawElectrodeEnteties; 
-              
+                obj.rawChNumber2EntityNumber=zeros(1,max(obj.channelNumbers));
+                obj.rawChNumber2EntityNumber(obj.channelNumbers)=obj.rawElectrodeEnteties;
+                
                 %translation between ch numbers and entities
                 %!!! one is added to avoid probalems arrising with channel 0 - this is also reflected in channel maps
             end

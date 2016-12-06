@@ -483,7 +483,6 @@ classdef MCRackRecording < dataRecording
                     error('Channels do not appear in consecutive order!!!');
                 end
                 
-                %remove gaps in channel numbers
                 obj.channelNumbers=1:numel(obj.channelNumbers);
                 
                 %remove from layout channels not in the channel list
@@ -500,7 +499,7 @@ classdef MCRackRecording < dataRecording
                 end
                 
                 if max(obj.channelNumbers)~=numel(obj.channelNumbers) || min(obj.channelNumbers)~=1
-                   	error('Channel numbers in MCRackRecording object do not start from one or non-continuous');
+                    error('Channel numbers in MCRackRecording object do not start from one or non-continuous');
                 end
                 
                 obj.channelID=1:obj.totalChannels;

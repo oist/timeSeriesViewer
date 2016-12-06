@@ -170,16 +170,16 @@ if transparentScale
 else
     lineWidth=4;
     if scaleBarOutsideAxis
-        bx=line(PX([3 2]),PY([3 2]),'lineWidth',lineWidth,'color',scaleBarColor,'Clipping','off');
-        by=line(PX([3 4]),PY([3 4]),'lineWidth',lineWidth,'color',scaleBarColor,'Clipping','off');
+        by=line(PX([3 2]),PY([3 2]),'lineWidth',lineWidth,'color',scaleBarColor,'Clipping','off');
+        bx=line(PX([3 4]),PY([3 4]),'lineWidth',lineWidth,'color',scaleBarColor,'Clipping','off');
     else
-        bx=line(PX([3 2]),PY([3 2]),'lineWidth',lineWidth,'color',scaleBarColor);
-        by=line(PX([3 4]),PY([1 2]),'lineWidth',lineWidth,'color',scaleBarColor);
+        by=line(PX([3 2]),PY([3 2]),'lineWidth',lineWidth,'color',scaleBarColor);
+        bx=line(PX([3 4]),PY([1 2]),'lineWidth',lineWidth,'color',scaleBarColor);
         %error('non transparent scale bar not implemented yet');
     end
     if strcmp(scaleBarAxes,'y')
         delete(bx);
-    elseif strcmp(scaleBarAxes,'y')
+    elseif strcmp(scaleBarAxes,'x')
         delete(by);
     end
 end
