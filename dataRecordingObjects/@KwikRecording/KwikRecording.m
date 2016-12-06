@@ -13,12 +13,15 @@ classdef KwikRecording < dataRecording
   %   - add functionalities
   
   properties
+    numRecordings;   % number of recordings in a single .kwd file
+    timestamps;      % timestamps information for each channel
     triggerFilename; % name of the *.kwe file containing trigger info
     info;            % additional information provided in the file
-    bitDepth;        % [1 x N] number of bits used to store data
+    bitDepth;        % number of bits used to store data
     datatype;        % class of data in the recording
     sample_ms;
     fullFilename;    % path + name
+    recordingNames;  % names of all recordings
   end
   
   properties (Constant = true)
@@ -45,11 +48,11 @@ classdef KwikRecording < dataRecording
       %Output: V_uv - A 3D matrix [nChannels x nTrials x nSamples] with voltage waveforms across specified channels and trials
       %        t_ms - A time vector relative to recording start (t=0 at start)
       
-      windowSamples = round(window_ms / obj.sample_ms(1));
+      windowSamples = double(round(double(window_ms) / obj.sample_ms(1)));
       nWindows = numel(startTime_ms);
       startTime_ms = round(startTime_ms/obj.sample_ms(1))*obj.sample_ms(1);
-      startElement = round(startTime_ms/obj.sample_ms(1));
-      if 0 == startElement
+      startElement = double(round(startTime_ms/obj.sample_ms(1)));
+      if 0 == startElement || Inf == startElement
         startElement = 1;
       end
       %window_ms = windowSamples * obj.sample_ms(1);
@@ -62,12 +65,15 @@ classdef KwikRecording < dataRecording
       V_uV = zeros(nCh, nWindows, windowSamples, obj.datatype); %initialize waveform matrix
       
       for k = 1:length(channels)
-        try
-          V_uV(channels(k), :, :) = h5read(obj.fullFilename, [obj.channelNames{k} '/data'], ...
-            [1 1 startElement], [1 nWindows windowSamples]);
-        catch
-          V_uV(channels(k), 1, :) = h5read(obj.fullFilename, [obj.channelNames{k} '/data'], ...
-            [1 startElement], [1 windowSamples]);
+        for m = 1:numel(startElement)
+          V_uV(channels(k), :, :) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
+            [k startElement(m)], [1 windowSamples]);
+%         try
+%           V_uV(channels(k), :, :) = h5read(obj.fullFilename, [obj.channelNames{k} '/data'], ...
+%             [1 1 startElement], [1 nWindows windowSamples]);
+%         catch
+%           V_uV(channels(k), 1, :) = h5read(obj.fullFilename, [obj.channelNames{k} '/data'], ...
+%             [1 startElement], [1 windowSamples]);
         end
       end
       
@@ -128,47 +134,57 @@ classdef KwikRecording < dataRecording
       
       fileInfo = h5info(obj.fullFilename, obj.pathToData);
       
-      numCh = length(fileInfo.Groups);
-      
-      obj.channelNames = cell(1, numCh);
-      obj.channelNumbers = zeros(1, numCh);
-      obj.samplingFrequency = zeros(1, numCh);
-      obj.bitDepth = zeros(1, numCh);
-      obj.MicrovoltsPerAD = zeros(1, numCh);
-      addMe = 0; %set to true if first channel is zero
-      for k = 1:numCh
-        obj.channelNames{k} = fileInfo.Groups(k).Name;
-        parts = strsplit(obj.channelNames{k}, '/');
-        obj.channelNumbers(k) = str2double(parts(end));
-        if 1 == k
-          if 0 == obj.channelNumbers(1)
-            addMe = 1;
-          end
-        end
-        obj.channelNumbers(k) = obj.channelNumbers(k) + addMe;
-        obj.samplingFrequency(obj.channelNumbers(k)) = h5readatt(obj.fullFilename, ...
-          obj.channelNames{k}, 'sample_rate');
-        obj.bitDepth(obj.channelNumbers(k)) = h5readatt(obj.fullFilename, ...
-          obj.channelNames{k}, 'bit_depth');
-        try
-          tmp = h5readatt(obj.fullFilename, [obj.channelNames{k} '/application_data'], 'channel_bit_volts');
-        catch
-          tmp = h5read(obj.fullFilename, [obj.channelNames{k} '/application_data/channel_bit_volts']);
-        end
-        obj.MicrovoltsPerAD(obj.channelNumbers(k)) = tmp(1);
+      obj.numRecordings = length(fileInfo.Groups);
+      if obj.numRecordings > 1
+        warning('KwikRecording: file contains multiple recordings.')
       end
-      obj.sample_ms = 1e3 / obj.samplingFrequency(1);
+      obj.recordingNames = cell(1, obj.numRecordings);
+      for k = 1:obj.numRecordings
+        obj.recordingNames{k} = fileInfo.Groups(k).Name;
+      end
+      
+      % Now extract metadata
+      try
+        obj.MicrovoltsPerAD = h5readatt(obj.fullFilename, [obj.recordingNames{1} '/application_data'], 'channel_bit_volts');
+      catch
+        obj.MicrovoltsPerAD = h5read(obj.fullFilename, [obj.recordingNames{1} '/application_data/channel_bit_volts']);
+      end
+      
+      obj.channelNumbers = 1:length(obj.MicrovoltsPerAD);
       
       try
-        obj.recordingDuration_ms = h5readatt(obj.fullFilename, '/', 'recordingDuration');
+        obj.samplingFrequency = h5readatt(obj.fullFilename, [obj.recordingNames{1} '/application_data'], 'channel_sample_rates');
       catch
-        obj.recordingDuration_ms = 0;
+        obj.samplingFrequency = h5read(obj.fullFilename, [obj.recordingNames{1} '/application_data/channel_sample_rates']);
       end
+      
+      try
+        obj.timestamps = h5read(obj.fullFilename, [obj.recordingNames{1} '/application_data/timestamps']);
+      catch
+        disp('KwikRecording: timestamps information not available')
+      end
+
+      obj.bitDepth = h5readatt(obj.fullFilename, obj.recordingNames{1}, 'bit_depth');
+
+      try
+        obj.recordingDuration_ms = h5readatt(obj.fullFilename, ...
+          [obj.recordingNames{1} '/data'], 'valid_samples');
+        obj.recordingDuration_ms = 1000 * double(obj.recordingDuration_ms) ./ obj.samplingFrequency;
+        obj.recordingDuration_ms = max(obj.recordingDuration_ms);
+      catch
+        try
+          obj.recordingDuration_ms = h5readatt(obj.fullFilename, '/', 'recordingDuration');
+        catch
+          obj.recordingDuration_ms = 0;
+        end
+      end
+
+      obj.sample_ms = 1e3 / obj.samplingFrequency(1);
       
       try
         obj.datatype = h5readatt(obj.fullFilename, '/', 'datatype');
       catch
-        obj.datatype = 'int16';
+        obj.datatype = ['int' num2str(obj.bitDepth)];
       end
       
     end

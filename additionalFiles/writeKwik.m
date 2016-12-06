@@ -5,7 +5,7 @@ function writeKwik( filename, data, triggers, triggersChNum, ...
 %   (here: https://github.com/klusta-team/kwiklib/wiki/Kwik-format#kwik)
 %   
 %   The file filename.kwd contains the raw data, while the file
-%   filename.kwe is the ne containing the trigger information. Two files
+%   filename.kwe is the file containing the trigger information. Two files
 %   are used following the variations of the original format specified
 %   here: https://open-ephys.atlassian.net/wiki/display/OEW/KWIK+format
 %
