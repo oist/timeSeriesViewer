@@ -25,13 +25,14 @@ function writeKwik( filename, data, triggers, triggersChNum, ...
 dataFile = [filename '.kwd'];
 trigFile = [filename '.kwe'];
 numCh = size(data, 1);
+numSamples = size(data, 3);
 
 if isscalar(samplingFreq)
-  samplingFreq = repmat(samplingFreq, numCh);
+  samplingFreq = single(repmat(samplingFreq, [1, numCh]));
 end
 
 if isscalar(bitVolts)
-  bitVolts = repmat(bitVolts, numCh);
+  bitVolts = single(repmat(bitVolts, [1, numCh]));
 end
 
 datatype = class(data);
@@ -44,24 +45,55 @@ elseif strcmpi('uint32', datatype) || strcmpi('int32', datatype)
 else
   bitDepth = 64;
 end
+bitDepth = int16(bitDepth);
 
-% first write the .kwd file
-for k = 1:numCh
-  h5create(dataFile, ['/recordings/' num2str(k) '/data'], size(data(k, :, :)), ...
-    'Datatype', class(data));
-  h5write( dataFile, ['/recordings/' num2str(k) '/data'], data(k, :, :));
-  h5writeatt(dataFile, ['/recordings/' num2str(k)], 'sample_rate', samplingFreq(k)); 
-  h5writeatt(dataFile, ['/recordings/' num2str(k)], 'bit_depth', bitDepth);
-  % now write the attribute in application data
-  % require the low level functions
-  plist = 'H5P_DEFAULT';
-  fid = H5F.open(dataFile, 'H5F_ACC_RDWR', plist);
-  gid = H5G.create(fid, ['/recordings/' num2str(k) '/application_data'], plist, plist, plist);
-  H5G.close(gid);
-  H5F.close(fid);
-  h5writeatt(dataFile, ['/recordings/' num2str(k) '/application_data'], 'channel_bit_volts', bitVolts(k));
+% first write the data in the .kwd file
+h5create(dataFile, '/recordings/0/data', size(squeeze(data(:, 1, :))), ...
+  'Datatype', class(data));
+h5write(dataFile, '/recordings/0/data', squeeze(data(:,1,:)));
+
+% then write the info in application_data
+h5create(dataFile, '/recordings/0/application_data/channel_bit_volts', size(bitVolts));
+h5write(dataFile, '/recordings/0/application_data/channel_bit_volts', bitVolts);
+
+h5create(dataFile, '/recordings/0/application_data/channel_sample_rates', size(samplingFreq));
+h5write(dataFile, '/recordings/0/application_data/channel_sample_rates', samplingFreq);
+
+% write attribute of recording
+h5writeatt(dataFile, '/recordings/0', 'sample_rate', samplingFreq(1)); 
+h5writeatt(dataFile, '/recordings/0', 'bit_depth', bitDepth);
+h5writeatt(dataFile, '/recordings/0', 'name', filename); 
+h5writeatt(dataFile, '/recordings/0', 'start_sample', 0);
+h5writeatt(dataFile, '/recordings/0', 'start_time', 0);
+
+% write attribute of application_data
+isMultiSampleRateData = 0;
+if length(unique(samplingFreq)) > 1
+  isMultiSampleRateData = 1;
 end
+h5writeatt(dataFile, '/recordings/0/application_data', 'is_MultiSampleRate_data', isMultiSampleRateData); 
 
+%write attribute of data
+validSamples = int32(repmat(numSamples, [numCh, 1]));
+h5writeatt(dataFile, '/recordings/0/data', 'valid_samples', validSamples);
+
+% for k = 1:numCh
+%   h5create(dataFile, ['/recordings/' num2str(k) '/data'], size(data(k, :, :)), ...
+%     'Datatype', class(data));
+%   h5write( dataFile, ['/recordings/' num2str(k) '/data'], data(k, :, :));
+%   h5writeatt(dataFile, ['/recordings/' num2str(k)], 'sample_rate', samplingFreq(k)); 
+%   h5writeatt(dataFile, ['/recordings/' num2str(k)], 'bit_depth', bitDepth);
+%   % now write the attribute in application data
+%   % require the low level functions
+%   plist = 'H5P_DEFAULT';
+%   fid = H5F.open(dataFile, 'H5F_ACC_RDWR', plist);
+%   gid = H5G.create(fid, ['/recordings/' num2str(k) '/application_data'], plist, plist, plist);
+%   H5G.close(gid);
+%   H5F.close(fid);
+%   h5writeatt(dataFile, ['/recordings/' num2str(k) '/application_data'], 'channel_bit_volts', bitVolts(k));
+% end
+
+% write some global attributes
 h5writeatt(dataFile, '/', 'datatype', datatype);
 h5writeatt(dataFile, '/', 'kwik_version', 2);
 h5writeatt(dataFile, '/', 'recordingDuration', recordingDuration);
