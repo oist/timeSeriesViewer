@@ -78,14 +78,16 @@ classdef KwikRecording < dataRecording
       end
       
       if obj.convertData2Double
-        for k = 1:size(V_uV, 1)
-          V_uV(k, :, :) = double(V_uV(k, :, :)) * obj.MicrovoltsPerAD(k);
-        end
+          V_uV=double(V_uV);
+          for k = 1:size(V_uV, 1)
+              V_uV(k, :, :) = V_uV(k, :, :) * obj.MicrovoltsPerAD(k);
+          end
       end
       
       if nargout==2
         t_ms=(1:windowSamples)*(1e3/obj.samplingFrequency(1));
       end
+
     end
     
     function [T_ms, chNumber] = getTrigger(obj, ~, ~, ~)
@@ -145,35 +147,35 @@ classdef KwikRecording < dataRecording
       
       % Now extract metadata
       try
-        obj.MicrovoltsPerAD = h5readatt(obj.fullFilename, [obj.recordingNames{1} '/application_data'], 'channel_bit_volts');
+        obj.MicrovoltsPerAD = double(h5readatt(obj.fullFilename, [obj.recordingNames{1} '/application_data'], 'channel_bit_volts'));
       catch
-        obj.MicrovoltsPerAD = h5read(obj.fullFilename, [obj.recordingNames{1} '/application_data/channel_bit_volts']);
+        obj.MicrovoltsPerAD = double(h5read(obj.fullFilename, [obj.recordingNames{1} '/application_data/channel_bit_volts']));
       end
       
       obj.channelNumbers = 1:length(obj.MicrovoltsPerAD);
+      obj.channelNames = cellfun(@(x) num2str(x),mat2cell(obj.channelNumbers,1,ones(1,numel(obj.channelNumbers))),'UniformOutput',0);
       
       try
-        obj.samplingFrequency = h5readatt(obj.fullFilename, [obj.recordingNames{1} '/application_data'], 'channel_sample_rates');
+        obj.samplingFrequency = double(h5readatt(obj.fullFilename, [obj.recordingNames{1} '/application_data'], 'channel_sample_rates'));
       catch
-        obj.samplingFrequency = h5read(obj.fullFilename, [obj.recordingNames{1} '/application_data/channel_sample_rates']);
+        obj.samplingFrequency = double(h5read(obj.fullFilename, [obj.recordingNames{1} '/application_data/channel_sample_rates']));
       end
       
       try
-        obj.timestamps = h5read(obj.fullFilename, [obj.recordingNames{1} '/application_data/timestamps']);
+        obj.timestamps = double(h5read(obj.fullFilename, [obj.recordingNames{1} '/application_data/timestamps']));
       catch
         disp('KwikRecording: timestamps information not available')
       end
 
-      obj.bitDepth = h5readatt(obj.fullFilename, obj.recordingNames{1}, 'bit_depth');
+      obj.bitDepth = double(h5readatt(obj.fullFilename, obj.recordingNames{1}, 'bit_depth'));
 
       try
-        obj.recordingDuration_ms = h5readatt(obj.fullFilename, ...
-          [obj.recordingNames{1} '/data'], 'valid_samples');
-        obj.recordingDuration_ms = 1000 * double(obj.recordingDuration_ms) ./ obj.samplingFrequency;
+        obj.recordingDuration_ms = double(h5readatt(obj.fullFilename,[obj.recordingNames{1} '/data'], 'valid_samples'));
+        obj.recordingDuration_ms = 1000 * obj.recordingDuration_ms ./ obj.samplingFrequency;
         obj.recordingDuration_ms = max(obj.recordingDuration_ms);
       catch
         try
-          obj.recordingDuration_ms = h5readatt(obj.fullFilename, '/', 'recordingDuration');
+          obj.recordingDuration_ms = double(h5readatt(obj.fullFilename, '/', 'recordingDuration'));
         catch
           obj.recordingDuration_ms = 0;
         end
