@@ -66,8 +66,8 @@ classdef KwikRecording < dataRecording
       
       for k = 1:length(channels)
         for m = 1:numel(startElement)
-          V_uV(channels(k), :, :) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
-            [k startElement(m)], [1 windowSamples]);
+          V_uV(k, :, :) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
+            [channels(k) startElement(m)], [1 windowSamples]);
 %         try
 %           V_uV(channels(k), :, :) = h5read(obj.fullFilename, [obj.channelNames{k} '/data'], ...
 %             [1 1 startElement], [1 nWindows windowSamples]);
