@@ -83,10 +83,7 @@ obj=preparePhysicalElectrodeSpace(obj);
         obj.plotParams.x=obj.plotParams.aX*obj.plotParams.translation(:,1)+obj.plotParams.bX;
         obj.plotParams.y=obj.plotParams.aY*obj.plotParams.translation(:,2)+obj.plotParams.bY;
         
-        set(obj.hPlotAxis,'xtick',[]);
-        set(obj.hPlotAxis,'ytick',[]);
-        set(obj.hPlotAxis,'XColor',[.8 .8 .8]); %To avoid axis being seen when printing
-        set(obj.hPlotAxis,'YColor',[.8 .8 .8]); %To avoid axis being seen when printing
+        set(obj.hPlotAxis,'xtick',[],'ytick',[],'XColor',[.8 .8 .8],'YColor',[.8 .8 .8],'YDir','normal');%To avoid axis being seen when printing
         
         %Plotting numbers on top of the propagation points
         obj.hPlotBackground.hElectrodes=text(obj.plotParams.aX*(obj.plotParams.translation(:,1)-0.44)+obj.plotParams.bX,0.35...
