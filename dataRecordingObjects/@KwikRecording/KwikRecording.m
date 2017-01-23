@@ -52,7 +52,7 @@ classdef KwikRecording < dataRecording
       nWindows = numel(startTime_ms);
       startTime_ms = round(startTime_ms/obj.sample_ms(1))*obj.sample_ms(1);
       startElement = double(round(startTime_ms/obj.sample_ms(1)));
-      if 0 == startElement || Inf == startElement
+      if startElement == 0 || Inf == startElement
         startElement = 1;
       end
       %window_ms = windowSamples * obj.sample_ms(1);
@@ -66,8 +66,14 @@ classdef KwikRecording < dataRecording
       
       for k = 1:length(channels)
         for m = 1:numel(startElement)
-          V_uV(channels(k), :, :) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
-            [k startElement(m)], [1 windowSamples]);
+          
+          if startElement(m) < 1
+            V_uV(channels(k), :, -startElement(m)+1 : end) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
+              [k 1], [1 windowSamples + startElement(m)]);
+          else
+            V_uV(channels(k), :, :) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
+              [k startElement(m)], [1 windowSamples]);
+          end
 %         try
 %           V_uV(channels(k), :, :) = h5read(obj.fullFilename, [obj.channelNames{k} '/data'], ...
 %             [1 1 startElement], [1 nWindows windowSamples]);
