@@ -195,6 +195,7 @@ classdef KwikRecording < dataRecording
         obj.datatype = ['int' num2str(obj.bitDepth)];
       end
       
+      obj=obj.loadChLayout;
     end
     
     function delete(obj) %do nothing

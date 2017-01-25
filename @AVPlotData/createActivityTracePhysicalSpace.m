@@ -1,7 +1,7 @@
 function [obj]=createActivityTracePhysicalSpace(obj)
 %electrode layouts, notice that the first layout of a given number of channels is the default
-elecNums=[128 64 60 60 60 60 120 252 32 32 20 64 252];
-obj.plotParams.allElecLayoutNames={'layout_100_9x4_FlexMEA120','layout_50_8x8_Edge','layout_200_8x8.mat','layout_HD_2x30.mat','layout_40_Hexa','layout_500_6x10','layout_200_12x12.mat','layout_100_16x16.mat','layout_300_6x6_FlexMEA.mat','layout_300_6x6_FlexMEARot180.mat','layout_20_Blackrock','layout_64_5X6X5_FlexDrive','layout_300_9Well'};
+elecNums=[32 32 128 64 60 60 60 60 120 252 32 32 20 64 252];
+obj.plotParams.allElecLayoutNames={'layout_40_16x2_FlexLin','layout_52_9x2_FlexLin','layout_100_9x4_FlexMEA120','layout_50_8x8_Edge','layout_200_8x8.mat','layout_HD_2x30.mat','layout_40_Hexa','layout_500_6x10','layout_200_12x12.mat','layout_100_16x16.mat','layout_300_6x6_FlexMEA.mat','layout_300_6x6_FlexMEARot180.mat','layout_20_Blackrock','layout_64_5X6X5_FlexDrive','layout_300_9Well'};
 obj.plotParams.elecLayoutNames4Popup=cellfun(@(x) x(8:end),obj.plotParams.allElecLayoutNames,'UniformOutput',0);
 if ~isempty(obj.nCh)
     obj.plotParams.electrodeLayoutNumber=find(elecNums>=obj.nCh,1,'first');
@@ -83,7 +83,10 @@ obj=preparePhysicalElectrodeSpace(obj);
         obj.plotParams.x=obj.plotParams.aX*obj.plotParams.translation(:,1)+obj.plotParams.bX;
         obj.plotParams.y=obj.plotParams.aY*obj.plotParams.translation(:,2)+obj.plotParams.bY;
         
-        set(obj.hPlotAxis,'xtick',[],'ytick',[],'XColor',[.8 .8 .8],'YColor',[.8 .8 .8],'YDir','normal');%To avoid axis being seen when printing
+        set(obj.hPlotAxis,'xtick',[]);
+        set(obj.hPlotAxis,'ytick',[]);
+        set(obj.hPlotAxis,'XColor',[.8 .8 .8]); %To avoid axis being seen when printing
+        set(obj.hPlotAxis,'YColor',[.8 .8 .8]); %To avoid axis being seen when printing
         
         %Plotting numbers on top of the propagation points
         obj.hPlotBackground.hElectrodes=text(obj.plotParams.aX*(obj.plotParams.translation(:,1)-0.44)+obj.plotParams.bX,0.35...

@@ -1,4 +1,2 @@
-load layout_50_8x8_Edge.mat;
-
-for i=1:64
-    [px,py]=find(En==i);
+Ena=cellfun(@(x) num2str(x),mat2cell(En,ones(1,size(En,1)),ones(1,size(En,2))),'UniformOutput',0);
+Enp=[];
