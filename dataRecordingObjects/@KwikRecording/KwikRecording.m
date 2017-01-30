@@ -67,23 +67,37 @@ classdef KwikRecording < dataRecording
       fileInfo = h5info(obj.fullFilename, [obj.recordingNames{1} '/data']);
       dataLength = fileInfo.Dataspace.Size(2);
       
-      for k = 1:length(channels)
+      % Speed up if all channels are consecutives
+      if 1 == all(diff(channels))
         for m = 1:numel(startElement)
-          
           if startElement <= -windowSamples
             %do nothing, return all zeros
           elseif startElement(m) < 1
-            V_uV(k, :, -startElement(m)+1 : end) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
-              [k 1], [1 windowSamples + startElement(m)]);
+            V_uV(:, :, -startElement(m)+1 : end) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
           elseif startElement + windowSamples > dataLength
-             V_uV(k, :, 1:dataLength-startElement) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
-              [k startElement(m)], [1 dataLength - startElement]);
+            V_uV(:, :, 1:dataLength-startElement) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
           else
-            V_uV(k, :, :) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
-              [k startElement(m)], [1 windowSamples]);
+            V_uV(:, :, :) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
+          end
+        end
+      else
+        for k = 1:length(channels)
+          for m = 1:numel(startElement)
+            
+            if startElement <= -windowSamples
+              %do nothing, return all zeros
+            elseif startElement(m) < 1
+              V_uV(k, :, -startElement(m)+1 : end) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
+            elseif startElement + windowSamples > dataLength
+              V_uV(k, :, 1:dataLength-startElement) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
+            else
+              V_uV(k, :, :) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
+            end
           end
         end
       end
+      
+      
       
       if obj.convertData2Double
           V_uV=double(V_uV);
