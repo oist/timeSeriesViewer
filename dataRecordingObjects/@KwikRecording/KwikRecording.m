@@ -75,6 +75,10 @@ classdef KwikRecording < dataRecording
           elseif startElement(m) < 1
             V_uV(:, :, -startElement(m)+1 : end) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
               [channels(1) 1], [length(channels) windowSamples + startElement(m)]);
+          elseif startElement >= dataLength
+            startElement = dataLength - windowSamples;
+            V_uV(:, :, :) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
+              [channels(1) startElement(m)], [length(channels) windowSamples]);
           elseif startElement + windowSamples > dataLength
             V_uV(:, :, 1:dataLength-startElement) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
               [channels(1) startElement(m)], [length(channels) dataLength - startElement]);
@@ -92,6 +96,10 @@ classdef KwikRecording < dataRecording
             elseif startElement(m) < 1
               V_uV(k, :, -startElement(m)+1 : end) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
                 [channels(k) 1], [1 windowSamples + startElement(m)]);
+            elseif startElement >= dataLength
+              startElement = dataLength - windowSamples;
+              V_uV(k, :, :) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
+                [channels(k) startElement(m)], [1 windowSamples]);
             elseif startElement + windowSamples > dataLength
               V_uV(k, :, 1:dataLength-startElement) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
                 [channels(k) startElement(m)], [1 dataLength - startElement]);
@@ -173,7 +181,23 @@ classdef KwikRecording < dataRecording
         obj.recordingNames{k} = fileInfo.Groups(k).Name;
       end
       
-      % Now extract metadata
+      if exist([obj.recordingDir filesep 'metaData.mat'],'file') && ~obj.overwriteMetaData
+        obj = loadMetaData(obj);
+      else
+        obj = extractMetaData(obj);
+      end
+      
+      obj=obj.loadChLayout;
+    end
+    
+    function delete(obj) %do nothing
+    end
+    
+  end
+  
+  methods (Access = protected)
+    
+    function obj = extractMetaData(obj)
       try
         obj.MicrovoltsPerAD = double(h5readatt(obj.fullFilename, [obj.recordingNames{1} '/application_data'], 'channel_bit_volts'));
       catch
@@ -181,7 +205,7 @@ classdef KwikRecording < dataRecording
       end
       
       obj.channelNumbers = 1:length(obj.MicrovoltsPerAD);
-      obj.channelNames = cellfun(@(x) num2str(x),mat2cell(obj.channelNumbers,1,ones(1,numel(obj.channelNumbers))),'UniformOutput',0);
+      obj.channelNames = cellfun(@(x) num2str(x), mat2cell(obj.channelNumbers,1,ones(1,numel(obj.channelNumbers))),'UniformOutput',0);
       
       try
         obj.samplingFrequency = double(h5readatt(obj.fullFilename, [obj.recordingNames{1} '/application_data'], 'channel_sample_rates'));
@@ -190,7 +214,9 @@ classdef KwikRecording < dataRecording
       end
       
       try
+        disp('Extracting time stamp information...');
         obj.timestamps = double(h5read(obj.fullFilename, [obj.recordingNames{1} '/application_data/timestamps']));
+        disp('... done');
       catch
         disp('KwikRecording: timestamps information not available')
       end
@@ -217,12 +243,10 @@ classdef KwikRecording < dataRecording
         obj.datatype = ['int' num2str(obj.bitDepth)];
       end
       
-      obj=obj.loadChLayout;
+      disp('saving meta data');
+      obj.saveMetaData;
     end
-    
-    function delete(obj) %do nothing
-    end
-    
+  
   end
   
 end
