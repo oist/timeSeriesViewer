@@ -22,6 +22,7 @@ classdef KwikRecording < dataRecording
     sample_ms;
     fullFilename;    % path + name
     recordingNames;  % names of all recordings
+    dataLength;      % total samples in the data
   end
   
   properties (Constant = true)
@@ -64,9 +65,6 @@ classdef KwikRecording < dataRecording
       
       V_uV = zeros(nCh, nWindows, windowSamples, obj.datatype); %initialize waveform matrix
       
-      fileInfo = h5info(obj.fullFilename, [obj.recordingNames{1} '/data']);
-      dataLength = fileInfo.Dataspace.Size(2);
-      
       % Speed up if all channels are consecutives
       if 1 == all(diff(channels))
         for m = 1:numel(startElement)
@@ -75,13 +73,13 @@ classdef KwikRecording < dataRecording
           elseif startElement(m) < 1
             V_uV(:, :, -startElement(m)+1 : end) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
               [channels(1) 1], [length(channels) windowSamples + startElement(m)]);
-          elseif startElement >= dataLength
-            startElement = dataLength - windowSamples;
+          elseif startElement >= obj.dataLength
+            startElement = obj.dataLength - windowSamples;
             V_uV(:, :, :) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
               [channels(1) startElement(m)], [length(channels) windowSamples]);
-          elseif startElement + windowSamples > dataLength
-            V_uV(:, :, 1:dataLength-startElement) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
-              [channels(1) startElement(m)], [length(channels) dataLength - startElement]);
+          elseif startElement + windowSamples > obj.dataLength
+            V_uV(:, :, 1:obj.dataLength-startElement) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
+              [channels(1) startElement(m)], [length(channels) obj.dataLength - startElement]);
           else
             V_uV(:, :, :) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
               [channels(1) startElement(m)], [length(channels) windowSamples]);
@@ -96,13 +94,13 @@ classdef KwikRecording < dataRecording
             elseif startElement(m) < 1
               V_uV(k, :, -startElement(m)+1 : end) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
                 [channels(k) 1], [1 windowSamples + startElement(m)]);
-            elseif startElement >= dataLength
-              startElement = dataLength - windowSamples;
+            elseif startElement >= obj.dataLength
+              startElement = obj.dataLength - windowSamples;
               V_uV(k, :, :) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
                 [channels(k) startElement(m)], [1 windowSamples]);
-            elseif startElement + windowSamples > dataLength
-              V_uV(k, :, 1:dataLength-startElement) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
-                [channels(k) startElement(m)], [1 dataLength - startElement]);
+            elseif startElement + windowSamples > obj.dataLength
+              V_uV(k, :, 1:obj.dataLength-startElement) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
+                [channels(k) startElement(m)], [1 obj.dataLength - startElement]);
             else
               V_uV(k, :, :) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
                 [channels(k) startElement(m)], [1 windowSamples]);
@@ -171,6 +169,8 @@ classdef KwikRecording < dataRecording
       obj.triggerFilename = fullfile(obj.recordingDir, triggerFile.name);
       
       fileInfo = h5info(obj.fullFilename, obj.pathToData);
+      
+      obj.dataLength = fileInfo.Dataspace.Size(2);
       
       obj.numRecordings = length(fileInfo.Groups);
       if obj.numRecordings > 1
