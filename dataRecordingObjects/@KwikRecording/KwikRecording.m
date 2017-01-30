@@ -170,8 +170,6 @@ classdef KwikRecording < dataRecording
       
       fileInfo = h5info(obj.fullFilename, obj.pathToData);
       
-      obj.dataLength = fileInfo.Dataspace.Size(2);
-      
       obj.numRecordings = length(fileInfo.Groups);
       if obj.numRecordings > 1
         warning('KwikRecording: file contains multiple recordings.')
@@ -180,6 +178,9 @@ classdef KwikRecording < dataRecording
       for k = 1:obj.numRecordings
         obj.recordingNames{k} = fileInfo.Groups(k).Name;
       end
+      
+      lengthInfo = h5info(obj.fullFilename, [obj.recordingNames{1} '/data']);
+      obj.dataLength = lengthInfo.Dataspace.Size(2);
       
       if exist([obj.recordingDir filesep 'metaData.mat'],'file') && ~obj.overwriteMetaData
         obj = loadMetaData(obj);
