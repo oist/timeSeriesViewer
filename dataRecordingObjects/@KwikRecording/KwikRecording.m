@@ -7,6 +7,7 @@ classdef KwikRecording < dataRecording
   %
   % AUTHOR: stefano.masneri@brain.mpg.de
   % DATE: 21.11.2016
+  % LAST MODIFIED BY: Mark Shein-Idelson (28.02.2017) 
   % 
   % TODO:
   %   - check how to deal with channel info for triggers
@@ -16,13 +17,14 @@ classdef KwikRecording < dataRecording
     numRecordings;   % number of recordings in a single .kwd file
     timestamps;      % timestamps information for each channel
     triggerFilename; % name of the *.kwe file containing trigger info
-    info;            % additional information provided in the file
     bitDepth;        % number of bits used to store data
     datatype;        % class of data in the recording
     sample_ms;
     fullFilename;    % path + name
     recordingNames;  % names of all recordings
     dataLength;      % total samples in the data
+    info;            % information on recording file
+    lengthInfo;      % information on recording file length
   end
   
   properties (Constant = true)
@@ -66,7 +68,7 @@ classdef KwikRecording < dataRecording
       V_uV = zeros(nCh, nWindows, windowSamples, obj.datatype); %initialize waveform matrix
       
       % Speed up if all channels are consecutives
-      if 1 == all(diff(channels))
+      if all(diff(channels)==1)
         for m = 1:numel(startElement)
           if startElement <= -windowSamples
             %do nothing, return all zeros
@@ -168,26 +170,23 @@ classdef KwikRecording < dataRecording
       end
       obj.triggerFilename = fullfile(obj.recordingDir, triggerFile.name);
       
-      fileInfo = h5info(obj.fullFilename, obj.pathToData);
-      
-      obj.numRecordings = length(fileInfo.Groups);
-      if obj.numRecordings > 1
-        warning('KwikRecording: file contains multiple recordings.')
+      if exist([obj.recordingDir filesep 'metaData.mat'],'file') && ~obj.overwriteMetaData
+          obj = loadMetaData(obj);
+      else
+          obj = extractMetaData(obj);
       end
+      
+      obj.numRecordings = length(obj.info.Groups);
+      if obj.numRecordings > 1
+          warning('KwikRecording: file contains multiple recordings.')
+      end
+      
       obj.recordingNames = cell(1, obj.numRecordings);
       for k = 1:obj.numRecordings
-        obj.recordingNames{k} = fileInfo.Groups(k).Name;
+          obj.recordingNames{k} = obj.info.Groups(k).Name;
       end
       
-      lengthInfo = h5info(obj.fullFilename, [obj.recordingNames{1} '/data']);
-      obj.dataLength = lengthInfo.Dataspace.Size(2);
-      
-      if exist([obj.recordingDir filesep 'metaData.mat'],'file') && ~obj.overwriteMetaData
-        obj = loadMetaData(obj);
-      else
-        obj = extractMetaData(obj);
-      end
-      
+      obj.dataLength = obj.lengthInfo.Dataspace.Size(2);
       obj=obj.loadChLayout;
     end
     
@@ -199,6 +198,8 @@ classdef KwikRecording < dataRecording
   methods (Access = protected)
     
     function obj = extractMetaData(obj)
+        obj.info = h5info(obj.fullFilename, obj.pathToData);
+        obj.lengthInfo = h5info(obj.fullFilename, [obj.recordingNames{1} '/data']);
       try
         obj.MicrovoltsPerAD = double(h5readatt(obj.fullFilename, [obj.recordingNames{1} '/application_data'], 'channel_bit_volts'));
       catch

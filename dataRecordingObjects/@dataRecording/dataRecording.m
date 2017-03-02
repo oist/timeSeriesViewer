@@ -166,6 +166,7 @@ classdef (Abstract) dataRecording < handle
             end
             obj.recordingDir=oldRecordingDir;
         end
+        
         function obj=loadChLayout(obj)
             %checks for a .chMap file with the recording name in the same folder of the recording and extract the layout information
             %txt should correspond to layout file name on path

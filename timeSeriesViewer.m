@@ -174,6 +174,12 @@ end
         if iscell(AVG.recordingObj.recordingName)
             AVG.recordingObj.recordingName=AVG.recordingObj.recordingName{1};
         end
+        if iscell(AVG.recordingObj.recordingDir)
+            AVG.recordingObj.recordingDir=AVG.recordingObj.recordingDir{1};
+        end
+        if isempty(AVG.recordingObj.recordingName)
+            AVG.recordingObj.recordingName='';
+        end
         set(AVG.hMainFigure.hFigure,'name',['Activity viewer - ' AVG.recordingObj.recordingDir ' - ' AVG.recordingObj.recordingName]);
         AVG.Params.startDate=AVG.recordingObj.startDate; %show with: datestr(AVG.Params.startDate)
         AVG.Params.endDate=AVG.recordingObj.endDate;

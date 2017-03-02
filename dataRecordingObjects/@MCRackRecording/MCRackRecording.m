@@ -171,7 +171,7 @@ classdef MCRackRecording < dataRecording
                 obj.getDataConfig.streamname=name;
                 %this option should be revised because currently all parameters are derived from the raw data stream
             else
-                error('method getData was not used correctly: wrong number of inputs');
+                error('method getAnalogData was not used correctly: wrong number of inputs');
             end
             conversionFactor=1/1000*obj.samplingFrequency;
             startTime_ms=round(startTime_ms*conversionFactor)/conversionFactor;
