@@ -14,17 +14,17 @@ P=cell(nRow,nCol);
 %selection of input data
 if obj.nCh==1 && obj.nTrials>1
     for i=1:obj.nCh
-        [~,F,T,Ptmp]=spectrogram(obj.M(1,i,:),obj.plotParams.window*Fs/1000,obj.plotParams.overlap*Fs/1000,obj.plotParams.NFFT,Fs);
+        [~,F,T,Ptmp]=spectrogram(squeeze(obj.M(1,i,:)),obj.plotParams.window*Fs/1000,obj.plotParams.overlap*Fs/1000,obj.plotParams.NFFT,Fs);
         P{i}=Ptmp(1:obj.plotParams.maxFreq,:);
     end
 elseif obj.nCh>1 && obj.nTrials==1
     for i=1:obj.nCh
-        [~,F,T,Ptmp]=spectrogram(obj.M(i,1,:),obj.plotParams.window*Fs/1000,obj.plotParams.overlap*Fs/1000,obj.plotParams.NFFT,Fs);
+        [~,F,T,Ptmp]=spectrogram(squeeze(obj.M(i,1,:)),obj.plotParams.window*Fs/1000,obj.plotParams.overlap*Fs/1000,obj.plotParams.NFFT,Fs);
         P{i}=Ptmp(1:obj.plotParams.maxFreq,:);
     end
 elseif obj.nCh==1 && obj.nTrials==1
     i=1;
-    [~,F,T,Ptmp]=spectrogram(obj.M(1,1,:),round(obj.plotParams.window*Fs/1000),round(obj.plotParams.overlap*Fs/1000),obj.plotParams.NFFT,Fs);
+    [~,F,T,Ptmp]=spectrogram(squeeze(obj.M(1,1,:)),round(obj.plotParams.window*Fs/1000),round(obj.plotParams.overlap*Fs/1000),obj.plotParams.NFFT,Fs);
     P{i}=Ptmp(1:obj.plotParams.maxFreq,:);
 end
 %initialize combined data matrix
