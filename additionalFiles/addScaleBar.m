@@ -169,6 +169,7 @@ if transparentScale
     end
 else
     lineWidth=4;
+    fontColor='k';
     if scaleBarOutsideAxis
         by=line(PX([3 2]),PY([3 2]),'lineWidth',lineWidth,'color',scaleBarColor,'Clipping','off');
         bx=line(PX([3 4]),PY([3 4]),'lineWidth',lineWidth,'color',scaleBarColor,'Clipping','off');

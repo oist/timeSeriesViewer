@@ -215,14 +215,16 @@ classdef (Abstract) dataRecording < handle
             
         end
         
-        function convert2KiloSortFormat(obj,targetFile)
+        function convert2Binary(obj,targetFile,channelNumbers)
             %converts data recording object to kilo sort binary format for sorting
-            if nargin==1
-                targetFile=[obj.recordingDir 'data.dat'];
-            else
-                if ~strcmp(targetFile(end-3:end),'dat')
-                    error('input file should have a ''.dat'' extension');
-                end
+            if nargin<3
+                channelNumbers=obj.channelNumbers;
+            end
+            if nargin<2
+                targetFile=[obj.recordingDir 'binaryData.dat'];
+            end
+            if ~strcmp(targetFile(end-3:end),'.dat')
+                error('input file should have a ''.dat'' extension');
             end
             
             chunkSize=2*60*1000; %msec
@@ -237,7 +239,7 @@ classdef (Abstract) dataRecording < handle
                 fprintf('\nConverting blocks to binary KiloSort format(/%d)',numel(startTimes));
                 for j=1:numel(startTimes)
                     fprintf('%d,',j);
-                    data=squeeze(obj.getData(obj.channelNumbers,startTimes(j),endTimes(j)-startTimes(j)));
+                    data=squeeze(obj.getData(channelNumbers,startTimes(j),endTimes(j)-startTimes(j)));
                     pause(0.001);
                     fwrite(fid, data, '*int16');
                 end

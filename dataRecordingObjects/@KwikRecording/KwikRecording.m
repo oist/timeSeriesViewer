@@ -171,7 +171,7 @@ classdef KwikRecording < dataRecording
       obj.triggerFilename = fullfile(obj.recordingDir, triggerFile.name);
       
       if exist([obj.recordingDir filesep 'metaData.mat'],'file') && ~obj.overwriteMetaData
-          obj = loadMetaData(obj);
+          obj = loadMetaData(obj); %needs recordingNames
       else
           obj = extractMetaData(obj);
       end
@@ -188,6 +188,7 @@ classdef KwikRecording < dataRecording
       
       obj.dataLength = obj.lengthInfo.Dataspace.Size(2);
       obj=obj.loadChLayout;
+      
     end
     
     function delete(obj) %do nothing
@@ -199,7 +200,7 @@ classdef KwikRecording < dataRecording
     
     function obj = extractMetaData(obj)
         obj.info = h5info(obj.fullFilename, obj.pathToData);
-        obj.lengthInfo = h5info(obj.fullFilename, [obj.recordingNames{1} '/data']);
+        obj.lengthInfo = h5info(obj.fullFilename, [obj.info.Groups(1).Name '/data']);
       try
         obj.MicrovoltsPerAD = double(h5readatt(obj.fullFilename, [obj.recordingNames{1} '/application_data'], 'channel_bit_volts'));
       catch

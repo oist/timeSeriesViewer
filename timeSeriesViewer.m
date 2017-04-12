@@ -101,6 +101,10 @@ AVG.Params.dataRecordingClasses=dir([AVG.Params.dataClassDirectory '@*']);
 AVG.Params.dataRecordingClasses={AVG.Params.dataRecordingClasses.name};
 AVG.Params.dataRecordingClasses=cellfun(@(x) x(2:end),AVG.Params.dataRecordingClasses,'UniformOutput',0);
 
+%initialize viewer
+AVG.Params.nTriggers=0;
+AVG.Params.trigger={};
+
 %construct filter object
 AVG.filterObj=filterData; %filter constructor - initialized without sampling frequency
 [AVG.Params.filterMethods,AVG.Params.filterNames]=AVG.filterObj.getFilters; %get all filtering methods
@@ -197,6 +201,7 @@ end
             AVG.Params.nTriggers=0;
             AVG.Params.currentTrigger=[];
             AVG.Params.nCurrentTriggers=0;
+            AVG.Params.triggers={};
         end
         AVG.Params.triggerOffset=AVG.Params.defaultTriggerOffset;
         createTriggerGUI(); %also updates gui in the case of no triggers
@@ -689,6 +694,27 @@ end
         CallbackTriggerCheckbox([],[],AVG.Params.nTriggers);
     end
 
+    function CallbackManualLoadSpikes(hObj,Event)
+        [tmpTrigFile,tmpTrigDir]= uigetfile('*.mat','Choose the Mat file',cd);
+        if tmpTrigFile==0 %no folder chosen
+            msgbox('File was not chosen and triggers were not added','Attention','error','replace');
+        else
+            spikeSort=load([tmpTrigDir dirSep tmpTrigFile],'t','ic');
+            
+            [pSelect] = listdlg('PromptString','Choose a neuron:','SelectionMode','multiple','ListString',num2str(spikeSort.ic(1:2,:)'))
+            
+            trigName='SS';
+            for i=1:numel(pSelect)
+                tmpTrig{i}=spikeSort.t(spikeSort.ic(3,pSelect(i)):spikeSort.ic(4,pSelect(i)));
+            end
+
+            AVG.Params.nTriggers=AVG.Params.nTriggers+numel(tmpTrig);
+            AVG.Params.triggers=[AVG.Params.triggers tmpTrig];
+            createTriggerGUI();
+            CallbackTriggerCheckbox([],[],AVG.Params.nTriggers);
+        end
+    end
+
     function CallbackTriggerNumberEdit(hObj,Event)
         tmpTriggerNumber=str2num(get(AVG.hTrigger.hNumber,'string'));
         if tmpTriggerNumber>AVG.Params.nCurrentTriggers || tmpTriggerNumber<1
@@ -749,7 +775,11 @@ end
 
     function CallbackDeleteTrigger(hObj,Event)
         %delete selected trigger
-        selectedTrigger=find(cell2mat(get(AVG.hTrigger.hCheck,'value')));
+        if AVG.Params.nTriggers~=1
+            selectedTrigger=find(cell2mat(get(AVG.hTrigger.hCheck,'value')));
+        else
+            selectedTrigger=1;
+        end
         AVG.Params.triggers(selectedTrigger)=[];
         AVG.Params.nTriggers=AVG.Params.nTriggers-1;
         createTriggerGUI();
@@ -982,7 +1012,8 @@ end
         AVG.hTrigger.manualLoadTxtTxt=uicontrol('Parent', AVG.hTrigger.manualLoadHBox, 'HorizontalAlignment','left','Style','text', 'String','Load trigger: ');
         AVG.hTrigger.manualLoadFile=uicontrol('Parent', AVG.hTrigger.manualLoadHBox,'Style','push','String','Mat. file','Callback',@CallbackManualLoadFile);
         AVG.hTrigger.manualLoadVariable=uicontrol('Parent', AVG.hTrigger.manualLoadHBox,'Style','push','String','Mat. var','Callback',@CallbackManualLoadVariable);
- 
+        AVG.hTrigger.manualLoadSpikes=uicontrol('Parent', AVG.hTrigger.manualLoadHBox,'Style','push','String','Mat. ss','Callback',@CallbackManualLoadSpikes);
+
         AVG.hTrigger.exportTriggerHBox=uix.HBox('Parent', AVG.hTrigger.MainVBox, 'Padding', 4, 'Spacing', 4);
         AVG.hTrigger.exportSelectedTrigger=uicontrol('Parent', AVG.hTrigger.exportTriggerHBox, 'Style','push', 'String','Export selected trigger','Callback',@CallbackExportSelectedTrigger);
         AVG.hTrigger.sendTriggerToStartTimePush=uicontrol('Parent', AVG.hTrigger.exportTriggerHBox, 'Style','push', 'String','send to start times','Callback',@CallbackSendTriggerToStartTime,'ForegroundColor','r');
@@ -994,7 +1025,8 @@ end
         
         set(AVG.hTrigger.MainVBox, 'Heights',[50 25 25 25 25 25 50 25 -1]);
         %this line should be after the startTimeEdit uicontrol is defined! 
-                
+        
+        mouse_figure(AVG.hMainFigure.hFigure);
     end %createGUI
 %% %%%%%%%%%%%%%%%%%%%%%%%%%% Create Trigger GUI %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
