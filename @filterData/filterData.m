@@ -332,9 +332,10 @@ classdef filterData
     methods (Hidden)
         function [obj]=filterData(samplingFrequency)
             %create filter object
-            %Usage: [fil]=getFilteredData(samplingFrequency)
+            %Usage: [fil]=getFilteredData(samplingFrequency);
             %Input : samplingFrequency - the sampling frequency of the data
             %Output: fil - the filter obj
+            %Assuming data format [ch x trials x samples]
             if nargin==1
                 obj.samplingFrequency=samplingFrequency(1);
             elseif nargin==0

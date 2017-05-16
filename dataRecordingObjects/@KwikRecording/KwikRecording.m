@@ -5,9 +5,8 @@ classdef KwikRecording < dataRecording
   % the whole kwik data specification but it only focuses on data and
   % triggers at the moment.
   %
-  % AUTHOR: stefano.masneri@brain.mpg.de
-  % DATE: 21.11.2016
-  % LAST MODIFIED BY: Mark Shein-Idelson (28.02.2017) 
+  % AUTHOR: stefano.masneri@brain.mpg.de & Mark Shein-Idelson
+  % DATE: 18.04.2017
   % 
   % TODO:
   %   - check how to deal with channel info for triggers
@@ -21,7 +20,7 @@ classdef KwikRecording < dataRecording
     datatype;        % class of data in the recording
     sample_ms;
     fullFilename;    % path + name
-    recordingNames;  % names of all recordings
+    recNameHD5;  % names of all recordings
     dataLength;      % total samples in the data
     info;            % information on recording file
     lengthInfo;      % information on recording file length
@@ -73,17 +72,17 @@ classdef KwikRecording < dataRecording
           if startElement <= -windowSamples
             %do nothing, return all zeros
           elseif startElement(m) < 1
-            V_uV(:, :, -startElement(m)+1 : end) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
+            V_uV(:, :, -startElement(m)+1 : end) = h5read(obj.fullFilename, [obj.recNameHD5{1} '/data'], ...
               [channels(1) 1], [length(channels) windowSamples + startElement(m)]);
           elseif startElement >= obj.dataLength
             startElement = obj.dataLength - windowSamples;
-            V_uV(:, :, :) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
+            V_uV(:, :, :) = h5read(obj.fullFilename, [obj.recNameHD5{1} '/data'], ...
               [channels(1) startElement(m)], [length(channels) windowSamples]);
           elseif startElement + windowSamples > obj.dataLength
-            V_uV(:, :, 1:obj.dataLength-startElement) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
+            V_uV(:, :, 1:obj.dataLength-startElement) = h5read(obj.fullFilename, [obj.recNameHD5{1} '/data'], ...
               [channels(1) startElement(m)], [length(channels) obj.dataLength - startElement]);
           else
-            V_uV(:, :, :) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
+            V_uV(:, :, :) = h5read(obj.fullFilename, [obj.recNameHD5{1} '/data'], ...
               [channels(1) startElement(m)], [length(channels) windowSamples]);
           end
         end
@@ -94,17 +93,17 @@ classdef KwikRecording < dataRecording
             if startElement <= -windowSamples
               %do nothing, return all zeros
             elseif startElement(m) < 1
-              V_uV(k, :, -startElement(m)+1 : end) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
+              V_uV(k, :, -startElement(m)+1 : end) = h5read(obj.fullFilename, [obj.recNameHD5{1} '/data'], ...
                 [channels(k) 1], [1 windowSamples + startElement(m)]);
             elseif startElement >= obj.dataLength
               startElement = obj.dataLength - windowSamples;
-              V_uV(k, :, :) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
+              V_uV(k, :, :) = h5read(obj.fullFilename, [obj.recNameHD5{1} '/data'], ...
                 [channels(k) startElement(m)], [1 windowSamples]);
             elseif startElement + windowSamples > obj.dataLength
-              V_uV(k, :, 1:obj.dataLength-startElement) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
+              V_uV(k, :, 1:obj.dataLength-startElement) = h5read(obj.fullFilename, [obj.recNameHD5{1} '/data'], ...
                 [channels(k) startElement(m)], [1 obj.dataLength - startElement]);
             else
-              V_uV(k, :, :) = h5read(obj.fullFilename, [obj.recordingNames{1} '/data'], ...
+              V_uV(k, :, :) = h5read(obj.fullFilename, [obj.recNameHD5{1} '/data'], ...
                 [channels(k) startElement(m)], [1 windowSamples]);
             end
           end
@@ -162,7 +161,13 @@ classdef KwikRecording < dataRecording
       % Find the .kwe file
       %[~, name, ~] = fileparts(obj.recordingName);
       obj.fullFilename = fullfile(obj.recordingDir, obj.recordingName);
-      triggerFile = dir([obj.recordingDir filesep '*.kwe']);
+      filePrefix=strsplit(obj.recordingName,'_');
+      
+      triggerFile = dir([obj.recordingDir filesep filePrefix{1} '*.kwe']);
+      if isempty(triggerFile)
+          triggerFile = dir([obj.recordingDir filesep '*.kwe']);
+          disp(['Trigger file with prefix ' filePrefix{1} ' not found!!!!, looking for other .kwe files in the same folder']);
+      end
       if isempty(triggerFile)
         error('KwikRecording: Cannot file .kwe file')
       elseif length(triggerFile) > 1
@@ -171,7 +176,7 @@ classdef KwikRecording < dataRecording
       obj.triggerFilename = fullfile(obj.recordingDir, triggerFile.name);
       
       if exist([obj.recordingDir filesep 'metaData.mat'],'file') && ~obj.overwriteMetaData
-          obj = loadMetaData(obj); %needs recordingNames
+          obj = loadMetaData(obj); %needs recNameHD5
       else
           obj = extractMetaData(obj);
       end
@@ -181,9 +186,9 @@ classdef KwikRecording < dataRecording
           warning('KwikRecording: file contains multiple recordings.')
       end
       
-      obj.recordingNames = cell(1, obj.numRecordings);
+      obj.recNameHD5 = cell(1, obj.numRecordings);
       for k = 1:obj.numRecordings
-          obj.recordingNames{k} = obj.info.Groups(k).Name;
+          obj.recNameHD5{k} = obj.info.Groups(k).Name;
       end
       
       obj.dataLength = obj.lengthInfo.Dataspace.Size(2);
@@ -201,33 +206,34 @@ classdef KwikRecording < dataRecording
     function obj = extractMetaData(obj)
         obj.info = h5info(obj.fullFilename, obj.pathToData);
         obj.lengthInfo = h5info(obj.fullFilename, [obj.info.Groups(1).Name '/data']);
+        obj.recNameHD5{1}=obj.info.Groups(1).Name;
       try
-        obj.MicrovoltsPerAD = double(h5readatt(obj.fullFilename, [obj.recordingNames{1} '/application_data'], 'channel_bit_volts'));
+        obj.MicrovoltsPerAD = double(h5readatt(obj.fullFilename, [obj.recNameHD5{1} '/application_data'], 'channel_bit_volts'));
       catch
-        obj.MicrovoltsPerAD = double(h5read(obj.fullFilename, [obj.recordingNames{1} '/application_data/channel_bit_volts']));
+        obj.MicrovoltsPerAD = double(h5read(obj.fullFilename, [obj.recNameHD5{1} '/application_data/channel_bit_volts']));
       end
       
       obj.channelNumbers = 1:length(obj.MicrovoltsPerAD);
       obj.channelNames = cellfun(@(x) num2str(x), mat2cell(obj.channelNumbers,1,ones(1,numel(obj.channelNumbers))),'UniformOutput',0);
       
       try
-        obj.samplingFrequency = double(h5readatt(obj.fullFilename, [obj.recordingNames{1} '/application_data'], 'channel_sample_rates'));
+        obj.samplingFrequency = double(h5readatt(obj.fullFilename, [obj.recNameHD5{1} '/application_data'], 'channel_sample_rates'));
       catch
-        obj.samplingFrequency = double(h5read(obj.fullFilename, [obj.recordingNames{1} '/application_data/channel_sample_rates']));
+        obj.samplingFrequency = double(h5read(obj.fullFilename, [obj.recNameHD5{1} '/application_data/channel_sample_rates']));
       end
       
       try
         disp('Extracting time stamp information...');
-        obj.timestamps = double(h5read(obj.fullFilename, [obj.recordingNames{1} '/application_data/timestamps']));
+        obj.timestamps = double(h5read(obj.fullFilename, [obj.recNameHD5{1} '/application_data/timestamps']));
         disp('... done');
       catch
         disp('KwikRecording: timestamps information not available')
       end
 
-      obj.bitDepth = double(h5readatt(obj.fullFilename, obj.recordingNames{1}, 'bit_depth'));
+      obj.bitDepth = double(h5readatt(obj.fullFilename, obj.recNameHD5{1}, 'bit_depth'));
 
       try
-        obj.recordingDuration_ms = double(h5readatt(obj.fullFilename,[obj.recordingNames{1} '/data'], 'valid_samples'));
+        obj.recordingDuration_ms = double(h5readatt(obj.fullFilename,[obj.recNameHD5{1} '/data'], 'valid_samples'));
         obj.recordingDuration_ms = 1000 * obj.recordingDuration_ms ./ obj.samplingFrequency;
         obj.recordingDuration_ms = max(obj.recordingDuration_ms);
       catch

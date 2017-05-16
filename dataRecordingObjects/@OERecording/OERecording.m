@@ -327,7 +327,7 @@ classdef OERecording < dataRecording
         %class constructor
         function obj = OERecording(recordingFile)
             %Usage: obj = NeuraLynxRecording(recordingFile)
-            
+            obj.folderMode=1;
             %get data files
             if nargin==0
                 recordingFile=[];

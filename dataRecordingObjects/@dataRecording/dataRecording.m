@@ -133,38 +133,43 @@ classdef (Abstract) dataRecording < handle
             %Load object properties (metaData) from file
             %Usage : obj.loadMetaData;
             %Input : fileName - if entered loads meta data from this file, else loads data from main data directory
-            oldRecordingDir=obj.recordingDir;
-            if ~iscell(obj.recordingDir) %regular recording
-                if nargin==2
-                    load(fileName);
-                else
-                    load([obj.recordingDir filesep 'metaData'],'metaData');
-                end
-                fieldNames=fieldnames(metaData);
-                for i=1:numel(fieldNames)
-                    obj.(fieldNames{i})=metaData.(fieldNames{i});
-                end
-            else %multi file recording
-                for i=1:numel(obj.recordingDir)
+            try
+                oldRecordingDir=obj.recordingDir;
+                if ~iscell(obj.recordingDir) %regular recording
                     if nargin==2
-                        load(fileName{i});
+                        load(fileName);
                     else
-                        load([oldRecordingDir{i} filesep 'metaData'],'metaData');
+                        load([obj.recordingDir filesep 'metaData'],'metaData');
                     end
                     fieldNames=fieldnames(metaData);
-                    for j=1:numel(fieldNames)
-                        if numel(metaData.(fieldNames{j}))==1
-                            obj.(fieldNames{j})(i)=metaData.(fieldNames{j});
+                    for i=1:numel(fieldNames)
+                        obj.(fieldNames{i})=metaData.(fieldNames{i});
+                    end
+                else %multi file recording
+                    for i=1:numel(obj.recordingDir)
+                        if nargin==2
+                            load(fileName{i});
                         else
-                            if ~iscell(obj.(fieldNames{j}))==1
-                                obj.(fieldNames{j})=cell(1,numel(obj.recordingDir));
+                            load([oldRecordingDir{i} filesep 'metaData'],'metaData');
+                        end
+                        fieldNames=fieldnames(metaData);
+                        for j=1:numel(fieldNames)
+                            if numel(metaData.(fieldNames{j}))==1
+                                obj.(fieldNames{j})(i)=metaData.(fieldNames{j});
+                            else
+                                if ~iscell(obj.(fieldNames{j}))==1
+                                    obj.(fieldNames{j})=cell(1,numel(obj.recordingDir));
+                                end
+                                obj.(fieldNames{j}){i}=metaData.(fieldNames{j});
                             end
-                            obj.(fieldNames{j}){i}=metaData.(fieldNames{j});
                         end
                     end
                 end
+                obj.recordingDir=oldRecordingDir;
+            catch errorMsg
+                disp('Error while extracting fields from meta data. Trying re-extract meta data...');
+                obj=extractMetaData(obj);
             end
-            obj.recordingDir=oldRecordingDir;
         end
         
         function obj=loadChLayout(obj)
@@ -213,6 +218,36 @@ classdef (Abstract) dataRecording < handle
             end
             fprintf('Channel map with pitch %d and layout %s extracted from %s\n',obj.electrodePitch,elecString{2},chMapFiles);
             
+            %check that all recorded channels are contained within the layout
+            if numel(obj.channelNumbers)>numel(intersect(obj.channelNumbers,En(:)))
+                warning('Notice that some of the recorded channels are not contained in the layout file, this may result in errors in further analysis!');
+            end
+            
+        end
+        
+        function []=convertLayouteJRClust(obj,padSize,outputName)
+            %convertLayouteJRClust(obj,padSize,outputName)
+            %Make probe (.prb) file for using with jrclust
+            %pad size - [height (y),widht (x)]
+            %outputName - a name of the prb file (e.g. probe1.prb)        nCh=numel(~isnan(Enp(1,:)));
+            %fid=fopen('layout_100_12x12.prb','w');
+            if nargin<3
+                outputName=[obj.recordingDir obj.layoutName '_JRC.prb'];
+            end
+            fid=fopen(outputName,'w');
+            
+            nCh=size(obj.chLayoutPositions,2);
+            fprintf(fid, 'channels = [1:%d];\n\n',nCh);
+            fprintf(fid, 'geometry = [%.1f,%.1f',obj.chLayoutPositions(1,1),obj.chLayoutPositions(2,1));
+            for i=2:nCh
+                fprintf(fid,';%.1f,%.1f',obj.chLayoutPositions(1,i),obj.chLayoutPositions(2,i));
+            end
+            fprintf(fid, '];\n\n');
+            
+            fprintf(fid, 'pad = [%.1f,%.1f];\n\n',padSize(1),padSize(2));
+            
+            fprintf(fid, 'cviShank = {1:%d};',nCh);
+            fclose(fid);
         end
         
         function convert2Binary(obj,targetFile,channelNumbers)
@@ -223,8 +258,8 @@ classdef (Abstract) dataRecording < handle
             if nargin<2
                 targetFile=[obj.recordingDir 'binaryData.dat'];
             end
-            if ~strcmp(targetFile(end-3:end),'.dat')
-                error('input file should have a ''.dat'' extension');
+            if ~any(strcmp(targetFile(end-3:end),{'.dat','.bin'}))
+                error('input file should have a ''.dat/.bin'' extension');
             end
             
             chunkSize=2*60*1000; %msec
@@ -248,6 +283,20 @@ classdef (Abstract) dataRecording < handle
             else
                 disp('file already exists, please data first and run again!');
             end
+            metaDataFile=[targetFile(1:end-4) '.meta'];
+            if ~exist(metaDataFile,'file')
+                fid=fopen(metaDataFile,'w');
+                fprintf(fid,'nSavedChans=%d\n',numel(channelNumbers));
+                fprintf(fid,'sRateHz=%d\n',obj.samplingFrequency(1));
+                fprintf(fid,'nChans=%d\n',numel(channelNumbers));
+                fprintf(fid,'vcDataType=%s\n',obj.datatype);
+                fprintf(fid,'scale=%f\n',obj.MicrovoltsPerAD(1));
+                fprintf(fid,'vcProbe=%s\n',obj.layoutName);
+                fclose(fid);
+            else
+                disp(['Meta data file: ' metaDataFile ' alreday exists!, please first delete']);
+            end
+            
         end
         
         function obj=getRecordingFiles(obj,recordingFile,fileExtension)

@@ -1,6 +1,5 @@
 function timeSeriesViewer(varargin)
 %% %%%%%%%%%%%%%%%%%%%%%%%%%% Definition of default values %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%global AVG
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 AVG.recordingObj=[]; %initiate recording object
@@ -136,7 +135,6 @@ end
         %set channel data
         AVG.plotData.channelNumbers=AVG.Params.channelNumbers(AVG.Params.activeChannelPlaces);
         AVG.plotData.channelNames=AVG.Params.channelNames(AVG.Params.activeChannelPlaces);
-        AVG.plotData.recordingObjReference=AVG.recordingObj; %in case something should be changed in the recording object from the GUI
         %set activity data
         if any(AVG.Params.selectedAnalysis==1) % a filter was selected -> data is padded
             [AVG.plotData.M,AVG.plotData.T]=AVG.recordingObj.getData(AVG.Params.channelNumbers(AVG.Params.activeChannelPlaces),...
@@ -233,9 +231,10 @@ end
         %delete previous plot
         AVG.plotData.deletePlotBackground;
         AVG.plotData.deletePlotControls;
+        AVG.plotData.recordingObjReference=AVG.recordingObj; %in case something should be changed in the recording object from the GUI
+        
         %initialize new plot
         AVG.plotData.initializePlot(AVG.Params.currentPlotName,AVG.hMainFigure.hMainAxis,AVG.hPlotProp.hMainPanel);
-        
         set(AVG.hGen.messageBox,'string','Ready','ForegroundColor','k');
     end
 
