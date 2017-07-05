@@ -17,7 +17,6 @@ classdef KwikRecording < dataRecording
     timestamps;      % timestamps information for each channel
     triggerFilename; % name of the *.kwe file containing trigger info
     bitDepth;        % number of bits used to store data
-    datatype;        % class of data in the recording
     sample_ms;
     fullFilename;    % path + name
     recNameHD5;  % names of all recordings
@@ -155,6 +154,8 @@ classdef KwikRecording < dataRecording
         disp('KwikRecording: Object was not constructed since too many parameters were given at construction');
         return;
       end
+      obj.datatype='int16';
+
       
       obj = obj.getRecordingFiles(recordingFile, 'kwd');
       

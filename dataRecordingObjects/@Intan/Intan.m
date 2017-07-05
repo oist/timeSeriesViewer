@@ -136,7 +136,7 @@ classdef Intan < dataRecording
                         data=reshape(data,size(data,1)*size(data,2),size(data,3));
                         
                         
-                        data=0.195 * (data - 32768); %scale the data
+                        data=obj.MicrovoltsPerAD * (data - 32768); %scale the data
                         
                         indicesToKeep=(startSampleLocal-tmpStartSample+1):(startSampleLocal-tmpStartSample+windowSamplesLocal);
                         
@@ -342,6 +342,9 @@ classdef Intan < dataRecording
     methods (Hidden)
         %class constructor
         function obj = Intan(recordingFile,A)
+            
+            obj.datatype='uint16';
+            obj.MicrovoltsPerAD=0.195;
             
             %object array for multiple electrodes
             if nargin == 2

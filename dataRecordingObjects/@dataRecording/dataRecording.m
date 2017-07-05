@@ -23,6 +23,8 @@ classdef (Abstract) dataRecording < handle
         convertData2Double = 1; % if data should be converted to double from the original quantization
         ZeroADValue
         MicrovoltsPerAD
+        datatype        % class of data in the recording
+        
         overwriteMetaData = false;
         electrodePitch
     end
@@ -251,6 +253,12 @@ classdef (Abstract) dataRecording < handle
         end
         
         function convert2Binary(obj,targetFile,channelNumbers)
+            tic;
+            targetDataType='int16';
+            if ~strcmp(obj.datatype,targetDataType)
+                fprintf('Recording data type different from target data type!!!!\nConverting from %s to %s!',obj.datatype,targetDataType);
+            end
+            
             %converts data recording object to kilo sort binary format for sorting
             if nargin<3
                 channelNumbers=obj.channelNumbers;
@@ -271,15 +279,16 @@ classdef (Abstract) dataRecording < handle
                 fid = fopen(targetFile, 'w+');
                 obj.convertData2Double=0;
                 
-                fprintf('\nConverting blocks to binary KiloSort format(/%d)',numel(startTimes));
+                fprintf('\nConverting blocks to binary KiloSort format(/%d) : ',numel(startTimes));
+                nDigits=0;
                 for j=1:numel(startTimes)
-                    fprintf('%d,',j);
+                    fprintf([repmat('\b',1,nDigits) '%d'],j);nDigits=length(num2str(j));
                     data=squeeze(obj.getData(channelNumbers,startTimes(j),endTimes(j)-startTimes(j)));
                     pause(0.001);
-                    fwrite(fid, data, '*int16');
+                    fwrite(fid, data, ['*' targetDataType]);
                 end
                 fclose(fid);
-                fprintf('\nConversion complete\n');
+                fprintf('\nConversion complete (binary %s)\n',targetDataType);
             else
                 disp('file already exists, please data first and run again!');
             end
@@ -289,14 +298,14 @@ classdef (Abstract) dataRecording < handle
                 fprintf(fid,'nSavedChans=%d\n',numel(channelNumbers));
                 fprintf(fid,'sRateHz=%d\n',obj.samplingFrequency(1));
                 fprintf(fid,'nChans=%d\n',numel(channelNumbers));
-                fprintf(fid,'vcDataType=%s\n',obj.datatype);
-                fprintf(fid,'scale=%f\n',obj.MicrovoltsPerAD(1));
+                fprintf(fid,'vcDataType=%s\n',targetDataType);
+                fprintf(fid,'scale=%.12f\n',obj.MicrovoltsPerAD(1));
                 fprintf(fid,'vcProbe=%s\n',obj.layoutName);
                 fclose(fid);
             else
                 disp(['Meta data file: ' metaDataFile ' alreday exists!, please first delete']);
             end
-            
+            toc;
         end
         
         function obj=getRecordingFiles(obj,recordingFile,fileExtension)

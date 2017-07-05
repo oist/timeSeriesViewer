@@ -280,6 +280,8 @@ classdef NLRecording < dataRecording
                 disp('Object was not constructed since too many parameters were given at construction');
                 return;
             end
+            
+            obj.datatype='int16';
             obj.folderMode=true; %neuralynx always work in folder mode - a recording is defined by a folder
             obj=obj.getRecordingFiles(recordingFile);
             obj.recordingDir=[obj.recordingDir obj.recordingName];

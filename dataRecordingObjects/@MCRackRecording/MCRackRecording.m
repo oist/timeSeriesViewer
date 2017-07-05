@@ -388,6 +388,8 @@ classdef MCRackRecording < dataRecording
             %Usage: obj = MCRackRecording(recordingFile),
             %structure of resulting file: [nChannels x nTrials x nSamples]
 
+            obj.datatype='uint16';
+
             %get data files
             if nargin==0
                 recordingFile=[];
