@@ -662,12 +662,38 @@ end
         else
             tmpTrig=load([tmpTrigDir dirSep tmpTrigFile]);
             trigName=fields(tmpTrig);
-            trigName=trigName{1};
-            
-            tmpTrig=tmpTrig.(trigName);
-            if ~iscell(tmpTrig)
-                error('Trigger variable should be a cell array of trigger vectors');
+            nVars=numel(trigName);
+            if nVars==1
+                trigName=trigName{1};
+            else
+                cellVar=[];
+                for i=1:nVars
+                    if iscell(tmpTrig.(trigName{i}))
+                        cellVar=[cellVar i];
+                    end
+                end
+                if numel(cellVar)==1
+                    trigName=trigName{cellVar};
+                    fprintf('setting triggers to field %s in file since this is the only cell array',trigName);
+                elseif numel(cellVar)==0
+                    error('Trigger variable should be a cell array of trigger vectors');
+                else
+                    pTmp=find(strcmp(trigName,{'tTrig'}));
+                    if ~isempty(pTmp)
+                        trigName=trigName{pTmp};
+                    else
+                        pTmp=find(strcmp(trigName,{'triggers'}));
+                        if ~isempty(pTmp)
+                            trigName=trigName{pTmp};
+                        else
+                            error('No cell arrays named triggers or tTrig were found in file!');
+                        end
+                    end
+                    
+                end
             end
+            tmpTrig=tmpTrig.(trigName);
+
             AVG.Params.nTriggers=AVG.Params.nTriggers+numel(tmpTrig);
             AVG.Params.triggers=[AVG.Params.triggers tmpTrig];
             createTriggerGUI();

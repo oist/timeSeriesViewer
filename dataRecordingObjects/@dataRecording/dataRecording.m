@@ -11,6 +11,7 @@ classdef (Abstract) dataRecording < handle
         channelNumbers % (1xN) an array with integer channel numbers
         channelNumbersOrignal
         triggerNames %the names of trigger channels
+        analogChannelNumbers
         dspLowCutFrequency % (1x1) Low-pass cutoff frequency in the Neuralynx DSP (in raw data)
         dspHighCutFrequency % (1x1) High-pass cutoff frequency in the Neuralynx DSP (in raw data)
         nRecordings % (1x1) number of recording files
@@ -27,6 +28,7 @@ classdef (Abstract) dataRecording < handle
         
         overwriteMetaData = false;
         electrodePitch
+        metaDataFile
     end
     
     properties (SetAccess=protected) %these are properties that are not synchronized or loaded from meta files
@@ -96,7 +98,7 @@ classdef (Abstract) dataRecording < handle
             for i=1:numel(pNonConstantProps)
                 metaData.(props.allPropName{pNonConstantProps(i)})=obj.(props.allPropName{pNonConstantProps(i)});
             end
-            save([obj.recordingDir filesep 'metaData'],'metaData');
+            save([obj.recordingDir filesep obj.recordingName '_metaData.mat'],'metaData');
         end
         
         function [X,Y,Z]=getElectrodePositions(obj,electrodePitch)
@@ -141,7 +143,7 @@ classdef (Abstract) dataRecording < handle
                     if nargin==2
                         load(fileName);
                     else
-                        load([obj.recordingDir filesep 'metaData'],'metaData');
+                        load([obj.recordingDir filesep obj.recordingName '_metaData'],'metaData');
                     end
                     fieldNames=fieldnames(metaData);
                     for i=1:numel(fieldNames)
@@ -152,7 +154,7 @@ classdef (Abstract) dataRecording < handle
                         if nargin==2
                             load(fileName{i});
                         else
-                            load([oldRecordingDir{i} filesep 'metaData'],'metaData');
+                            load([oldRecordingDir{i} filesep obj.recordingName '_metaData'],'metaData');
                         end
                         fieldNames=fieldnames(metaData);
                         for j=1:numel(fieldNames)
@@ -227,6 +229,63 @@ classdef (Abstract) dataRecording < handle
             
         end
         
+        function []=convertLayoutKSort(obj,outputFile,badChannels)
+            if nargin<2
+                outputFile=fullfile(obj.recordingDir, 'chanMap.mat');
+            end
+            if nargin<3
+                badChannels=[];
+            end
+            
+            % here I know a priori what order my channels are in.  So I just manually
+            % make a list of channel indices (and give an index to dead channels too). chanMap(1) is the row in the raw binary
+            % file for the first channel. chanMap(1:2) = [33 34] in my case, which happen to be dead channels.
+            
+            chanMap = obj.channelNumbers;
+            
+            % the first thing Kilosort does is reorder the data with data = data(chanMap, :).
+            % Now we declare which channels are "connected" in this normal ordering,
+            % meaning not dead or used for non-ephys data
+            
+            badChannels=[];
+            connected = true(numel(chanMap), 1);
+            if ~isempty(badChannels)
+                connected(badChannels) = false;
+            end
+            
+            % now we define the horizontal (x) and vertical (y) coordinates of these
+            % 34 channels. For dead or nonephys channels the values won't matter. Again
+            % I will take this information from the specifications of the probe. These
+            % are in um here, but the absolute scaling doesn't really matter in the
+            % algorithm.
+            
+            xcoords = obj.chLayoutPositions(1,:);
+            ycoords = obj.chLayoutPositions(2,:);
+            
+            % Often, multi-shank probes or tetrodes will be organized into groups of
+            % channels that cannot possibly share spikes with the rest of the probe. This helps
+            % the algorithm discard noisy templates shared across groups. In
+            % this case, we set kcoords to indicate which group the channel belongs to.
+            % In our case all channels are on the same shank in a single group so we
+            % assign them all to group 1.
+            
+            kcoords = true(numel(chanMap), 1);
+            
+            % at this point in Kilosort we do data = data(connected, :), ycoords =
+            % ycoords(connected), xcoords = xcoords(connected) and kcoords =
+            % kcoords(connected) and no more channel map information is needed (in particular
+            % no "adjacency graphs" like in KlustaKwik).
+            % Now we can save our channel map for the eMouse.
+            
+            % would be good to also save the sampling frequency here
+            fs = obj.samplingFrequency;
+            
+            save(outputFile, 'chanMap', 'connected', 'xcoords', 'ycoords', 'kcoords', 'fs');
+            
+            disp(['Channel information saved in : ' outputFile]);
+            
+        end
+
         function []=convertLayouteJRClust(obj,padSize,outputName)
             %convertLayouteJRClust(obj,padSize,outputName)
             %Make probe (.prb) file for using with jrclust
@@ -234,7 +293,10 @@ classdef (Abstract) dataRecording < handle
             %outputName - a name of the prb file (e.g. probe1.prb)        nCh=numel(~isnan(Enp(1,:)));
             %fid=fopen('layout_100_12x12.prb','w');
             if nargin<3
-                outputName=[obj.recordingDir obj.layoutName '_JRC.prb'];
+                outputName=[obj.recordingDir filesep obj.layoutName '_JRC.prb'];
+            end
+            if nargin<2
+                error('Pad size must be entered as an external parameter');
             end
             fid=fopen(outputName,'w');
             
@@ -252,19 +314,32 @@ classdef (Abstract) dataRecording < handle
             fclose(fid);
         end
         
-        function convert2Binary(obj,targetFile,channelNumbers)
+        function export2Binary(obj,targetFile,dataChannels,medianFilterGroup)
             tic;
             targetDataType='int16';
+            if nargin<4
+                medianFilterGroup=[];
+            else
+                for i=1:numel(medianFilterGroup)
+                    [~,pGroup{i}]=intersect(dataChannels,medianFilterGroup{i});
+                end
+            end
+            
             if ~strcmp(obj.datatype,targetDataType)
                 fprintf('Recording data type different from target data type!!!!\nConverting from %s to %s!',obj.datatype,targetDataType);
+                zeroValue=2^16/2;
+                convertDataType=true;
+            else
+                zeroValue=0;
+                convertDataType=false;
             end
             
             %converts data recording object to kilo sort binary format for sorting
             if nargin<3
-                channelNumbers=obj.channelNumbers;
+                dataChannels=obj.channelNumbers;
             end
-            if nargin<2
-                targetFile=[obj.recordingDir 'binaryData.dat'];
+            if nargin<2 || isempty(targetFile)
+                targetFile=[obj.recordingDir filesep 'binaryData.bin'];
             end
             if ~any(strcmp(targetFile(end-3:end),{'.dat','.bin'}))
                 error('input file should have a ''.dat/.bin'' extension');
@@ -279,28 +354,53 @@ classdef (Abstract) dataRecording < handle
                 fid = fopen(targetFile, 'w+');
                 obj.convertData2Double=0;
                 
-                fprintf('\nConverting blocks to binary KiloSort format(/%d) : ',numel(startTimes));
+                fprintf('\nConverting blocks to binary %s format(/%d) : ',targetDataType,numel(startTimes));
                 nDigits=0;
                 for j=1:numel(startTimes)
                     fprintf([repmat('\b',1,nDigits) '%d'],j);nDigits=length(num2str(j));
-                    data=squeeze(obj.getData(channelNumbers,startTimes(j),endTimes(j)-startTimes(j)));
+                    if ~convertDataType
+                        data=squeeze(obj.getData(dataChannels,startTimes(j),endTimes(j)-startTimes(j)));
+                    else
+                        data=int16(int32(squeeze(obj.getData(dataChannels,startTimes(j),endTimes(j)-startTimes(j))))-zeroValue);
+                    end
+                    if ~isempty(medianFilterGroup)
+                        for i=1:numel(medianFilterGroup)
+                            data(pGroup{i},:)=bsxfun(@minus,data(pGroup{i},:),median(data(pGroup{i},:)));
+                        end
+                    end
                     pause(0.001);
                     fwrite(fid, data, ['*' targetDataType]);
                 end
                 fclose(fid);
                 fprintf('\nConversion complete (binary %s)\n',targetDataType);
             else
-                disp('file already exists, please data first and run again!');
+                disp('file already exists, please delete data first and run again!');
             end
+            
+            fprintf('Writing trigger file...\n');
+            T=obj.getTrigger;
+            nT=cellfun(@(x) numel(x),T);
+            pT=find(nT>0);
+            
+            triggerFile=[targetFile(1:end-4) '_Triggers.bin'];
+            fid = fopen(triggerFile, 'w+');
+            fwrite(fid,uint32(nT+1),'*uint32');
+            for i=1:numel(pT)
+                fwrite(fid, uint32(T{pT(i)}*obj.samplingFrequency(1)/1000)+1,'*uint32');
+            end
+            fclose(fid);
+            
             metaDataFile=[targetFile(1:end-4) '.meta'];
             if ~exist(metaDataFile,'file')
                 fid=fopen(metaDataFile,'w');
-                fprintf(fid,'nSavedChans=%d\n',numel(channelNumbers));
-                fprintf(fid,'sRateHz=%d\n',obj.samplingFrequency(1));
-                fprintf(fid,'nChans=%d\n',numel(channelNumbers));
-                fprintf(fid,'vcDataType=%s\n',targetDataType);
-                fprintf(fid,'scale=%.12f\n',obj.MicrovoltsPerAD(1));
-                fprintf(fid,'vcProbe=%s\n',obj.layoutName);
+                fprintf(fid,'nSavedChans = %d\n',numel(dataChannels));
+                fprintf(fid,'sRateHz = %d\n',obj.samplingFrequency(1));
+                fprintf(fid,'nChans = %d\n',numel(dataChannels));
+                fprintf(fid,'nTriggerChans = %d\n',numel(nT));
+                fprintf(fid,'nAnalogChans = %d\n',numel(obj.analogChannelNumbers));
+                fprintf(fid,'vcDataType = %s\n',targetDataType);
+                fprintf(fid,'scale = %.12f\n',obj.MicrovoltsPerAD(1));
+                fprintf(fid,'vcProbe = %s\n',obj.layoutName);
                 fclose(fid);
             else
                 disp(['Meta data file: ' metaDataFile ' alreday exists!, please first delete']);
@@ -335,7 +435,7 @@ classdef (Abstract) dataRecording < handle
                         obj.dataFileNames{i}=[name{i} ext];
                         if ~exist([pathstr filesep obj.dataFileNames{i}],'file')
                             disp(['Searching for recording file: ' [pathstr filesep obj.dataFileNames{i}]]);
-                            error('Object was not constructed since no valid file name was chosen');
+                            error('Object was not constructed since no valid recording file name was chosen');
                         end
                     end
                 else
@@ -394,10 +494,11 @@ classdef (Abstract) dataRecording < handle
                 end
             end
             if ~obj.folderMode
-                obj.recordingName=obj.dataFileNames{1};
+                [~,obj.recordingName]=fileparts(obj.dataFileNames{1});
             else
                 obj.recordingName=name;
             end
+            obj.metaDataFile=[obj.recordingDir filesep obj.recordingName '_metaData'];
         end
     end
 end

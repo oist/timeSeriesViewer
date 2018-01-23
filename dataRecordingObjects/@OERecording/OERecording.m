@@ -287,12 +287,6 @@ classdef OERecording < dataRecording
             
             %}
             
-            %load layout
-            obj=obj.loadChLayout;
-            if isempty(obj.chLayoutNumbers)
-                disp('No layout file in directory, to add layout please add a *.chMap file to the data directory with the layout name');
-            end
-            
             disp('saving meta data');
             obj.saveMetaData;
         end
@@ -327,6 +321,7 @@ classdef OERecording < dataRecording
         %class constructor
         function obj = OERecording(recordingFile)
             %Usage: obj = NeuraLynxRecording(recordingFile)
+            obj.datatype='int16';
             obj.folderMode=1;
             %get data files
             if nargin==0
@@ -335,10 +330,12 @@ classdef OERecording < dataRecording
                 disp('Object was not constructed since too many parameters were given at construction');
                 return;
             end
-            
+            if iscell(recordingFile)
+                recordingFile=recordingFile{1};
+            end
             obj=obj.getRecordingFiles(recordingFile);
             
-            obj.recordingDir=[obj.recordingDir obj.recordingName];
+            obj.recordingDir=[obj.recordingDir obj.dataFileNames{1}];
             
             if exist([obj.recordingDir filesep 'metaData.mat'],'file') && ~obj.overwriteMetaData
                 obj=loadMetaData(obj);
@@ -347,6 +344,11 @@ classdef OERecording < dataRecording
                 obj=extractMetaData(obj);%file identifiers are aquired inside function
             end
             
+            %load layout
+            obj=obj.loadChLayout;
+            if isempty(obj.chLayoutNumbers)
+                disp('No layout file in directory, to add layout please add a *.chMap file to the data directory with the layout name');
+            end
             
         end
         

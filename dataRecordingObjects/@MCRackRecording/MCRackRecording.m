@@ -19,9 +19,9 @@ classdef MCRackRecording < dataRecording
         %}
         includeDigitalDataInTriggers=1;
         includeOnlyDigitalDataInTriggers=0;
+        maxNumberOfDigitalChannels=4;
     end
     properties (Constant, Hidden)
-        maxNumberOfDigitalChannels=4;
         defaultRawDataStreamName='Electro';
         defaultFilteredDataStreamName='Filtere';
         defaultAnalogDataStreamName='Analog '; %dont erase the space
@@ -172,6 +172,9 @@ classdef MCRackRecording < dataRecording
                 %this option should be revised because currently all parameters are derived from the raw data stream
             else
                 error('method getAnalogData was not used correctly: wrong number of inputs');
+            end
+            if isempty(channels)
+                channels=obj.analogChannelNumbers;
             end
             conversionFactor=1/1000*obj.samplingFrequency;
             startTime_ms=round(startTime_ms*conversionFactor)/conversionFactor;
@@ -520,6 +523,7 @@ classdef MCRackRecording < dataRecording
             obj.analogDataStreamNumber=find( cellfun(@(x) all(x(1:numel(obj.defaultAnalogDataStreamName))==obj.defaultAnalogDataStreamName),obj.streamNames) );
             if ~isempty(obj.analogDataStreamNumber)
                 obj.analogDataInfo=obj.MCinfo.StreamInfo{obj.analogDataStreamNumber};
+                obj.analogChannelNumbers=obj.MCinfo.ChannelID(obj.MCinfo.ChannelID(:,obj.analogDataStreamNumber)~=-1,obj.analogDataStreamNumber);
                 obj.totalAnalogChannels=numel(find(obj.MCinfo.ChannelID(:,obj.analogDataStreamNumber)~=-1));
                 
                 obj.ZeroADValueAnalog = obj.MCinfo.ZeroADValue(obj.analogDataStreamNumber);

@@ -86,6 +86,7 @@ classdef AVPlotData < handle
         function deletePlotData(obj)
             delete(obj.hPlot);
             obj.hPlot=[];
+            set(obj.hPlotAxis,'YDir','normal');
         end
         function deletePlotControls(obj)
             if isfield(obj.hPlotControls,'plotPropGrid')

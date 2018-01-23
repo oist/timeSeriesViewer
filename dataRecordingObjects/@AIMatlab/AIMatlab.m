@@ -8,6 +8,9 @@ classdef AIMatlab < dataRecording
         estimatedResolution %ms
         maxSamplingFrequency
     end
+    properties (Constant, Hidden)
+        fileExtension='mat';
+    end
     properties (Constant)
         defaultLocalDir='C:\Users\Tulip\Documents\Academic\Post-Doc\Experiments'; %Default directory from which search starts
         signalBits                   	% defined in dataRecording
@@ -32,7 +35,11 @@ classdef AIMatlab < dataRecording
             obj.samplingFrequency=1/obj.timeBin*1000;
         end
         function obj=updateMaximalSamplingFrequency(obj)
-            load([obj.recordingDir filesep obj.dataFileNames],'-mat', 't');
+            if obj.dataFileNames{1}~=0
+                load([obj.recordingDir filesep obj.dataFileNames{1}],'-mat', 't');
+            else
+                t=obj.t;
+            end
             if ~isempty(obj.pMultiSeries)
                 t=t{obj.pMultiSeries};
             end
@@ -75,28 +82,25 @@ classdef AIMatlab < dataRecording
     
     methods (Hidden)
         %class constructor
-        function obj = AIMatlab(spikeDataFileName,originalRecordingObject)
-            if nargin==1 %if directory with data was not entered open get directory GUI
-                [pathstr, name, ext] = fileparts(spikeDataFileName);
-                if isempty(pathstr) %in case the file is in the current directory
-                    obj.recordingDir=cd;
-                else
-                    obj.recordingDir=pathstr;
-                end
-                obj.dataFileNames=[name ext];
-                if ~isdir(obj.recordingDir) || ~exist([obj.recordingDir filesep obj.dataFileNames],'file')
-                    error('Object was not constructed since no valid folder was choosen');
-                end
-            elseif nargin==0
-                [obj.dataFileNames,obj.recordingDir]= uigetfile('*.mat','Choose the Mat file',obj.defaultLocalDir,'MultiSelect','on');
-                if obj.dataFileNames==0 %no folder chosen
-                    error('Object was not constructed since no folder was choosen');
-                end
+        function obj = AIMatlab(recordingFile)
+            
+            %get data files
+            if nargin==0
+                recordingFile=[];
+            elseif nargin>1
+                disp('Object was not constructed since too many parameters were given at construction');
+                return;
+            end
+            obj=obj.getRecordingFiles(recordingFile,obj.fileExtension);
+            if obj.dataFileNames{1}==0
+                tvar = uigetvariables({'Select time variable','Select index channel variable'});
+                obj.t=tvar{1};
+                obj.ic=tvar{2};
+                ic=obj.ic;
             else
-                error('Object was not constructed since too many parameters were given at construction');
+                load([obj.recordingDir filesep obj.dataFileNames{1}],'ic','I'); %loads t
             end
             
-            load([obj.recordingDir filesep obj.dataFileNames],'ic','I'); %loads t
             if iscell(ic) %in case t/I/ic are structured as cell array containning more than one data set
                 nSeries=numel(ic);
                 f=figure('position',[100 100 100 500],'name','Select series');

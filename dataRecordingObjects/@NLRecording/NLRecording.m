@@ -239,7 +239,7 @@ classdef NLRecording < dataRecording
             % each CSC record is (timestamp-ch-samplingRate-nSamples-data) 64+32+32+32+512*16 bits = 1044 bytes
             
             % go to end of file to get filesize check of the header info and the file size (I assume that all channel files have the same number of records and time stamps)
-            disp('Extracting time stamp information...');
+            disp('Extracting time stamp information from Neuralynx recording...');
             
             fseek(obj.fid(1), 0, 1);
             obj.nRecords=(ftell(obj.fid(1))-obj.headerSizeByte)/obj.recordSize(1);
@@ -303,11 +303,13 @@ classdef NLRecording < dataRecording
                 obj.fid(i)=fopen([obj.recordingDir filesep obj.channelFiles{i}],'r');
             end
             
-            if exist([obj.recordingDir filesep 'metaData.mat'],'file') && ~obj.overwriteMetaData
+            if exist(obj.metaDataFile,'file') && ~obj.overwriteMetaData
                 obj=loadMetaData(obj);
             else
                 obj=extractMetaData(obj);
             end
+            
+            obj=obj.loadChLayout;
             
         end
         
