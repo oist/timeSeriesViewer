@@ -3,7 +3,7 @@ classdef filterData
         samplingFrequency=[]; %Sampling rate
         filterDimension=1; %the dimensionality of the filter
         filterOrder=8; %filter order
-        filterDesign='butter'; %filter type 'ellip'/'butter'/'kaiserwin'
+        filterDesign='ellip'; %filter type 'ellip'/'butter'/'kaiserwin'
         rippleInPassband=0.5; %Ap
         attenuationInHighpass=4; %Ast
         attenuationInLowpass=4; %Ast
