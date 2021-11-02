@@ -98,7 +98,7 @@ classdef (Abstract) dataRecording < handle
             for i=1:numel(pNonConstantProps)
                 metaData.(props.allPropName{pNonConstantProps(i)})=obj.(props.allPropName{pNonConstantProps(i)});
             end
-            save([obj.recordingDir filesep obj.recordingName '_metaData.mat'],'metaData');
+%            save([obj.recordingDir filesep obj.recordingName '_metaData.mat'],'metaData');
         end
         
         function [X,Y,Z]=getElectrodePositions(obj,electrodePitch)

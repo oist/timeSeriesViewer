@@ -14,7 +14,7 @@ classdef OERecording < dataRecording
         recordSize
         
         sample_ms
-        bufferSize;
+    %    bufferSize;
         blockLength;
         
         blkCont
@@ -172,6 +172,20 @@ classdef OERecording < dataRecording
         
         function obj=extractMetaData(obj)
             
+%             tmpRecordingDir=obj.recordingDir; %for multi file mode
+%             tmpRecordingName=obj.recordingName;%for multi file mode
+%             tmpFileNames=obj.dataFileNames;
+%           
+%             if iscell(obj.recordingDir)
+%                 obj.recordingDir=tmpRecordingDir; %for multi file mode - change to one dir and run
+%                 obj.recordingName=tmpRecordingName;
+%                 obj.dataFileNames=tmpFileNames;
+%             else
+%                 obj.recordingDir=tmpRecordingDir; %for multi file mode - change to one dir and run
+%                 obj.recordingName=tmpRecordingName;
+%                 obj.dataFileNames=tmpFileNames;
+%             end
+
             obj.eventFiles=dir([obj.recordingDir filesep '*.' obj.eventFileExtension]);
             
             %get channel information
@@ -217,7 +231,7 @@ classdef OERecording < dataRecording
                 obj.samplingFrequency(i)=header.sampleRate;
                 obj.MicrovoltsPerAD=header.bitVolts;
                 obj.startDate{i}=header.date_created;
-                obj.bufferSize(i)=header.bufferSize;
+             %   obj.bufferSize(i)=header.bufferSize;
                 obj.blockLength(i)=header.blockLength;
                 obj.dataDescriptionCont{i}=header.description;
                 obj.fileHeaders{i} = header;
@@ -271,22 +285,7 @@ classdef OERecording < dataRecording
             obj.bytesPerRecEvnt=sum(obj.blkBytesEvnt);
             obj.nRecordsEvnt = floor((obj.evntFileSize - obj.headerSizeByte)/obj.bytesPerRecEvnt);
             
-            %{
-            %prepare data structures for spikes
-            num_channels = info.header.num_channels;
-            num_samples = 40;
-            bStr = {'eventType' 'timestamps' 'timestamps_software' 'source' 'nChannels' 'nSamples' 'sortedId' 'electrodeID' 'channel' 'color' 'pcProj' 'samplingFrequencyHz' 'data' 'gain' 'threshold' 'recordingNumber'};
-            bTypes = {'uint8' 'int64' 'int64' 'uint16' 'uint16' 'uint16' 'uint16' 'uint16' 'uint16' 'uint8' 'float32' 'uint16' 'uint16' 'float32' 'uint16' 'uint16'};
-            bRepeat = {1 1 1 1 1 1 1 1 1 3 2 1 num_channels*num_samples num_channels num_channels 1};
-            obj.blkSpk = struct('Repeat',bRepeat,'Types', bTypes,'Str',bStr);
-            if obj.softwareVersion < 0.4,  obj.blkSpk(7:12) = []; obj.blkSpk(8).Types = 'uint16'; end
-            if obj.softwareVersion == 0.3, obj.blkSpk = [obj.blkSpk(1), struct('Repeat',1,'Types','uint32','Str','ts'), obj.blkSpk(2:end)]; end
-            if obj.softwareVersion < 0.3, obj.blkSpk(2) = []; end
-            if obj.softwareVersion < 0.2, obj.blkSpk(9) = []; end
-            if obj.softwareVersion < 0.1, obj.blkSpk(2).Types = 'uint64'; end
-            
-            %}
-            
+           
             disp('saving meta data');
             obj.saveMetaData;
         end
@@ -321,7 +320,7 @@ classdef OERecording < dataRecording
         %class constructor
         function obj = OERecording(recordingFile)
             %Usage: obj = NeuraLynxRecording(recordingFile)
-            obj.datatype='int16';
+           % obj.datatype='int16';
             obj.folderMode=1;
             %get data files
             if nargin==0
@@ -335,7 +334,7 @@ classdef OERecording < dataRecording
             end
             obj=obj.getRecordingFiles(recordingFile);
             
-            obj.recordingDir=[obj.recordingDir obj.dataFileNames{1}];
+          %  obj.recordingDir=[obj.recordingDir obj.dataFileNames{1}];
             
             if exist([obj.recordingDir filesep 'metaData.mat'],'file') && ~obj.overwriteMetaData
                 obj=loadMetaData(obj);

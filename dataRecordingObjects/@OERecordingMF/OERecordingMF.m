@@ -14,7 +14,7 @@ classdef OERecordingMF < dataRecording
         recordSize
         
         sample_ms
-        bufferSize;
+      %  bufferSize;
         blockLength;
         
         blkCont
@@ -311,7 +311,7 @@ classdef OERecordingMF < dataRecording
                     obj.samplingFrequency=header.sampleRate;
                     obj.MicrovoltsPerAD=header.bitVolts;
                     obj.startDate{i}=header.date_created;
-                    obj.bufferSize(i)=header.bufferSize;
+                 %   obj.bufferSize(i)=header.bufferSize;
                     obj.blockLength(i)=header.blockLength;
                     obj.dataDescriptionCont{i}=header.description;
                     obj.fileHeaders{i} = header;
@@ -401,9 +401,9 @@ classdef OERecordingMF < dataRecording
         
         function [obj]=getFileIdentifiers(obj)
             %get file indentifiers for all channel files
-            obj.fid=zeros(numel(obj.recordingDir),numel(obj.channelFiles));
-            obj.fidA=zeros(numel(obj.recordingDir),numel(obj.channelFilesAnalog));
-            obj.fidEvnt=zeros(numel(obj.recordingDir));
+            obj.fid=zeros(numel(obj.dataFileNames),numel(obj.channelFiles));
+            obj.fidA=zeros(numel(obj.dataFileNames),numel(obj.channelFilesAnalog));
+            obj.fidEvnt=zeros(numel(obj.dataFileNames));
             if ~iscell(obj.recordingDir)
                 for i=1:numel(obj.channelFiles)
                     obj.fid(i)=fopen([obj.recordingDir filesep obj.channelFiles{i}],'r');
